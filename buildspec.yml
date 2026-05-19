@@ -6,7 +6,7 @@ env:
     REGION: "us-east-1"
     FRONTEND_BUCKET: "imagify-frontend"
     LAMBDA_FUNCTION: "imagify-image-processor"
-    EC2_TAG_NAME: "imagify-backend"
+    EC2_INSTANCE_ID: ""
 
 phases:
   install:
@@ -29,15 +29,11 @@ phases:
       # Deploy Lambda
       - aws lambda update-function-code --function-name $LAMBDA_FUNCTION --zip-file fileb://imagify-processor.zip --region $REGION
 
-      # Get EC2 instance ID by tag, then trigger git pull + restart via SSM
+      # Deploy backend on EC2 via SSM (EC2_INSTANCE_ID set in CodeBuild env vars)
       - |
-        INSTANCE_ID=$(aws ec2 describe-instances \
-          --filters "Name=tag:Name,Values=$EC2_TAG_NAME" "Name=instance-state-name,Values=running" \
-          --query "Reservations[0].Instances[0].InstanceId" \
-          --output text --region $REGION)
-        echo "Deploying to EC2 instance: $INSTANCE_ID"
+        echo "Deploying to EC2 instance: $EC2_INSTANCE_ID"
         aws ssm send-command \
-          --instance-ids "$INSTANCE_ID" \
+          --instance-ids "$EC2_INSTANCE_ID" \
           --document-name "AWS-RunShellScript" \
           --parameters 'commands=["cd /home/ec2-user/Imagify/backend && git pull && npm ci --omit=dev && pm2 restart imagify-backend"]' \
           --region $REGION

@@ -103,7 +103,6 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
-  align-items: start;
 }
 
 /* ── Image card ── */
@@ -112,11 +111,16 @@ body {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s;
   cursor: default;
+  display: flex;
+  flex-direction: column;
 }
 
-.image-card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); }
+.image-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13);
+  transform: translateY(-3px);
+}
 
 .image-card img {
   width: 100%;
@@ -124,9 +128,15 @@ body {
   object-fit: cover;
   display: block;
   background: #f1f3f5;
+  transition: transform 0.3s ease;
 }
 
-.card-body { padding: 12px; }
+.image-card:hover img { transform: scale(1.05); }
+
+.card-body {
+  padding: 12px;
+  flex: 1;
+}
 
 .card-filename {
   font-size: 13px;
@@ -271,6 +281,96 @@ body {
 .btn-primary:hover { background: #2d2d44; }
 .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
+/* ── Progress modal ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(26, 26, 46, 0.18); }
+  70%  { box-shadow: 0 0 0 10px rgba(26, 26, 46, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(26, 26, 46, 0); }
+}
+
+.progress-modal {
+  background: white;
+  border-radius: 20px;
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18);
+  min-width: 280px;
+}
+
+.progress-spinner {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2.5px solid #e9ecef;
+  border-top-color: #1a1a2e;
+  border-right-color: #1a1a2e;
+  animation: spin 0.7s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite, pulse-ring 1.4s ease-out infinite;
+  margin-bottom: 12px;
+}
+
+.progress-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 16px;
+}
+
+.progress-subtitle {
+  font-size: 13px;
+  color: #868e96;
+  text-align: center;
+}
+
+.progress-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #adb5bd;
+  transition: color 0.3s;
+}
+
+.progress-step.active { color: #1a1a2e; }
+
+.progress-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dee2e6;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.progress-step.active .progress-step-dot { background: #1a1a2e; }
+
+.progress-error-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fff0f0;
+  color: #e03131;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
 /* ── Mobile ── */
 @media (max-width: 640px) {
   .header { padding: 10px 16px; }
@@ -281,6 +381,7 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 12px;
   }
+  .image-card:hover { transform: none; }
   .image-card img { height: 140px; }
   .modal { padding: 24px; }
 }

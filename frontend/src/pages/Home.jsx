@@ -3,13 +3,18 @@ import Header from '../components/Header.jsx'
 import LabelFilter from '../components/LabelFilter.jsx'
 import ImageGrid from '../components/ImageGrid.jsx'
 import UploadModal from '../components/UploadModal.jsx'
-import { fetchImages } from '../services/api.js'
+import ProgressModal from '../components/ProgressModal.jsx'
+import { fetchImages, getPresignedUrl, fetchLabels } from '../services/api.js'
+
+const POLL_INTERVAL_MS = 2000
+const POLL_MAX_ATTEMPTS = 10
 
 export default function Home() {
   const [images, setImages] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeLabel, setActiveLabel] = useState(null)
   const [showUpload, setShowUpload] = useState(false)
+  const [progressStatus, setProgressStatus] = useState(null)
 
   async function loadImages() {
     try {
@@ -21,6 +26,30 @@ export default function Home() {
   }
 
   useEffect(() => { loadImages() }, [])
+
+  async function handleUpload(file) {
+    setShowUpload(false)
+    setProgressStatus('uploading')
+    try {
+      const { uploadUrl, imageId } = await getPresignedUrl(file.name, file.type)
+      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+      setProgressStatus('processing')
+      await pollForLabels(imageId)
+      setProgressStatus(null)
+      loadImages()
+    } catch {
+      setProgressStatus('error')
+    }
+  }
+
+  async function pollForLabels(imageId) {
+    for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
+      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+      const labels = await fetchLabels(imageId)
+      if (labels.length > 0) return labels
+    }
+    throw new Error('Timeout')
+  }
 
   const allLabels = useMemo(() => {
     const set = new Set()
@@ -55,7 +84,13 @@ export default function Home() {
       {showUpload && (
         <UploadModal
           onClose={() => setShowUpload(false)}
-          onUploadComplete={loadImages}
+          onUpload={handleUpload}
+        />
+      )}
+      {progressStatus && (
+        <ProgressModal
+          status={progressStatus}
+          onClose={() => setProgressStatus(null)}
         />
       )}
     </>

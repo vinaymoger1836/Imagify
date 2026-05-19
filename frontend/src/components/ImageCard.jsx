@@ -26,7 +26,7 @@ export default function ImageCard({ image }) {
                 className="label-chip"
                 style={{ background: color.bg, color: color.text }}
               >
-                {label.name} {label.confidence.toFixed(0)}%
+                {label.name}
               </span>
             )
           })}

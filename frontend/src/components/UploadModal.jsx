@@ -1,12 +1,7 @@
 import { useState, useRef } from 'react'
-import { getPresignedUrl, fetchLabels } from '../services/api.js'
 
-const POLL_INTERVAL_MS = 2000
-const POLL_MAX_ATTEMPTS = 10
-
-export default function UploadModal({ onClose, onUploadComplete }) {
+export default function UploadModal({ onClose, onUpload }) {
   const [file, setFile] = useState(null)
-  const [status, setStatus] = useState('idle')
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef()
 
@@ -15,36 +10,6 @@ export default function UploadModal({ onClose, onUploadComplete }) {
     setDragOver(false)
     const dropped = e.dataTransfer.files[0]
     if (dropped?.type.startsWith('image/')) setFile(dropped)
-  }
-
-  async function handleUpload() {
-    if (!file) return
-    setStatus('uploading')
-    try {
-      const { uploadUrl, imageId } = await getPresignedUrl(file.name, file.type)
-      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
-      setStatus('processing')
-      await pollForLabels(imageId)
-      onUploadComplete()
-      onClose()
-    } catch {
-      setStatus('error')
-    }
-  }
-
-  async function pollForLabels(imageId) {
-    for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
-      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
-      const labels = await fetchLabels(imageId)
-      if (labels.length > 0) return labels
-    }
-    throw new Error('Timeout')
-  }
-
-  const statusMessages = {
-    uploading: 'Uploading to S3...',
-    processing: 'Analyzing with Rekognition...',
-    error: 'Something went wrong. Please try again.',
   }
 
   return (
@@ -72,20 +37,17 @@ export default function UploadModal({ onClose, onUploadComplete }) {
             type="file"
             accept="image/*"
             style={{ display: 'none' }}
-            onChange={e => { setFile(e.target.files[0]); setStatus('idle') }}
+            onChange={e => setFile(e.target.files[0])}
           />
         </div>
-
-        <p className="modal-status">{statusMessages[status] || ''}</p>
-
         <div className="modal-actions">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
           <button
             className="btn-primary"
-            onClick={handleUpload}
-            disabled={!file || status === 'uploading' || status === 'processing'}
+            onClick={() => file && onUpload(file)}
+            disabled={!file}
           >
-            {status === 'uploading' || status === 'processing' ? 'Processing...' : 'Upload'}
+            Upload
           </button>
         </div>
       </div>
