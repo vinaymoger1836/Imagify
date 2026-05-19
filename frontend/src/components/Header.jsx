@@ -1,9 +1,58 @@
+import { useState, useEffect, useRef } from 'react'
+import { getTheme, setTheme } from '../utils/theme.js'
+
+const SunIcon = () => (
+  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="5" />
+    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+  </svg>
+)
+
+const MoonIcon = () => (
+  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+)
+
+const MonitorIcon = () => (
+  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="2" y="3" width="20" height="14" rx="2" />
+    <path d="M8 21h8M12 17v4" />
+  </svg>
+)
+
+const THEMES = [
+  { key: 'system', label: 'System', Icon: MonitorIcon },
+  { key: 'light',  label: 'Light',  Icon: SunIcon },
+  { key: 'dark',   label: 'Dark',   Icon: MoonIcon },
+]
+
 export default function Header({ searchQuery, onSearchChange, onUploadClick }) {
+  const [theme, setThemeState] = useState(getTheme)
+  const [open, setOpen] = useState(false)
+  const ref = useRef()
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  function handleSelect(key) {
+    setTheme(key)
+    setThemeState(key)
+    setOpen(false)
+  }
+
+  const current = THEMES.find(t => t.key === theme)
+
   return (
     <header className="header">
       <span className="header-logo">Imagify</span>
       <div className="search-bar">
-        <svg width="15" height="15" fill="none" stroke="#868e96" strokeWidth="2" viewBox="0 0 24 24">
+        <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
@@ -14,6 +63,27 @@ export default function Header({ searchQuery, onSearchChange, onUploadClick }) {
           onChange={e => onSearchChange(e.target.value)}
         />
       </div>
+
+      <div className="theme-toggle" ref={ref}>
+        <button className="btn-icon" onClick={() => setOpen(o => !o)} title="Change theme">
+          <current.Icon />
+        </button>
+        {open && (
+          <div className="theme-dropdown">
+            {THEMES.map(({ key, label, Icon }) => (
+              <button
+                key={key}
+                className={`theme-option ${theme === key ? 'active' : ''}`}
+                onClick={() => handleSelect(key)}
+              >
+                <Icon />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <button className="btn-upload" onClick={onUploadClick}>
         <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
           <path d="M12 5v14M5 12h14" />

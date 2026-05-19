@@ -11,6 +11,7 @@ const POLL_MAX_ATTEMPTS = 10
 
 export default function Home() {
   const [images, setImages] = useState([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeLabel, setActiveLabel] = useState(null)
   const [showUpload, setShowUpload] = useState(false)
@@ -22,6 +23,8 @@ export default function Home() {
       setImages(data)
     } catch (err) {
       console.error('Failed to load images', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -80,7 +83,7 @@ export default function Home() {
         activeLabel={activeLabel}
         onSelect={setActiveLabel}
       />
-      <ImageGrid images={filtered} />
+      <ImageGrid images={filtered} loading={loading} />
       {showUpload && (
         <UploadModal
           onClose={() => setShowUpload(false)}

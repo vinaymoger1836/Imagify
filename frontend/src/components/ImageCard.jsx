@@ -1,9 +1,11 @@
+import { useState } from 'react'
 import { getLabelColor } from '../utils/labelColors.js'
 
 const MAX_VISIBLE = 3
 
 export default function ImageCard({ image }) {
   const { filename, imageUrl, labels, processedAt } = image
+  const [imgLoaded, setImgLoaded] = useState(false)
   const visible = labels.slice(0, MAX_VISIBLE)
   const overflow = labels.length - MAX_VISIBLE
 
@@ -13,7 +15,13 @@ export default function ImageCard({ image }) {
 
   return (
     <div className="image-card">
-      <img src={imageUrl} alt={filename} loading="lazy" />
+      <img
+        src={imageUrl}
+        alt={filename}
+        loading="lazy"
+        onLoad={() => setImgLoaded(true)}
+        style={{ filter: imgLoaded ? 'none' : 'blur(12px)', transform: imgLoaded ? '' : 'scale(1.05)', transition: 'filter 0.4s ease, transform 0.4s ease' }}
+      />
       <div className="card-body">
         <div className="card-filename">{filename}</div>
         <div className="card-date">{date}</div>
