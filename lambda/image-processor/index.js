@@ -11,10 +11,6 @@ exports.handler = async (event) => {
   const imageId = parts[1]
   const filename = parts[2]
 
-  console.log(`Processing: bucket=${bucket} key=${key} imageId=${imageId}`)
-
   const labels = await processImage(bucket, key)
   await saveLabels(imageId, filename, key, labels)
-
-  console.log(`Stored ${labels.length} labels for imageId=${imageId}`)
 }

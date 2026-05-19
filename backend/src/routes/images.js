@@ -33,8 +33,8 @@ router.get('/upload-url', async (req, res, next) => {
   }
   try {
     const imageId = uuidv4()
-    const { uploadUrl, key } = await generateUploadUrl(imageId, filename, contentType)
-    res.json({ uploadUrl, imageId, key })
+    const { uploadUrl } = await generateUploadUrl(imageId, filename, contentType)
+    res.json({ uploadUrl, imageId })
   } catch (err) {
     next(err)
   }
