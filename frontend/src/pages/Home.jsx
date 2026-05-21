@@ -7,7 +7,7 @@ import ProgressModal from '../components/ProgressModal.jsx'
 import { fetchImages, getPresignedUrl, fetchLabels } from '../services/api.js'
 
 const POLL_INTERVAL_MS = 2000
-const POLL_MAX_ATTEMPTS = 10
+const POLL_MAX_ATTEMPTS = 20
 
 export default function Home() {
   const [images, setImages] = useState([])
@@ -48,8 +48,12 @@ export default function Home() {
   async function pollForLabels(imageId) {
     for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
       await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
-      const labels = await fetchLabels(imageId)
-      if (labels.length > 0) return labels
+      try {
+        const labels = await fetchLabels(imageId)
+        if (labels.length > 0) return labels
+      } catch {
+        // transient error — keep polling
+      }
     }
     throw new Error('Timeout')
   }
