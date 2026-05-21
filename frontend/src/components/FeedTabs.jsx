@@ -4,6 +4,7 @@ export default function FeedTabs({ feed, onChange }) {
       {[
         { key: 'global',    label: 'All' },
         { key: 'following', label: 'Following' },
+        { key: 'mine',      label: 'My Posts' },
       ].map(({ key, label }) => (
         <button
           key={key}

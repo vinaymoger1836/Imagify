@@ -8,7 +8,7 @@ async function authHeaders() {
 }
 
 export async function fetchImages(feed = 'global') {
-  const query = feed === 'following' ? '?feed=following' : ''
+  const query = feed !== 'global' ? `?feed=${feed}` : ''
   const res = await fetch(`${API_BASE}/images${query}`, {
     headers: await authHeaders(),
   })

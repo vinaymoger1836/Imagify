@@ -14,6 +14,8 @@ router.get('/', async (req, res, next) => {
       if (followingIds.length === 0) return res.json([])
       const results = await Promise.all(followingIds.map(uid => queryByUser(uid)))
       items = results.flat()
+    } else if (req.query.feed === 'mine') {
+      items = await queryByUser(req.user.userId)
     } else {
       items = await scanImages()
     }
