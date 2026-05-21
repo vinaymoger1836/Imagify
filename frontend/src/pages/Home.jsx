@@ -35,15 +35,12 @@ export default function Home() {
     setProgressStatus('uploading')
     try {
       const { uploadUrl, imageId } = await getPresignedUrl(file.name, file.type)
-      console.log('[upload] got presigned URL, imageId:', imageId)
-      const s3Res = await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
-      console.log('[upload] S3 PUT status:', s3Res.status)
+      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
       setProgressStatus('processing')
       await pollForLabels(imageId)
       setProgressStatus(null)
       loadImages()
-    } catch (err) {
-      console.error('[upload] failed:', err)
+    } catch {
       setProgressStatus('error')
     }
   }
@@ -53,10 +50,9 @@ export default function Home() {
       await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
       try {
         const labels = await fetchLabels(imageId)
-        console.log(`[poll] attempt ${i + 1}/${POLL_MAX_ATTEMPTS} — labels:`, labels.length)
         if (labels.length > 0) return labels
-      } catch (err) {
-        console.warn(`[poll] attempt ${i + 1} error:`, err.message)
+      } catch {
+        // transient error — keep polling
       }
     }
     throw new Error('Timeout')
