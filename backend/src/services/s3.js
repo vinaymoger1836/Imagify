@@ -4,8 +4,8 @@ const awsConfig = require('../config/aws')
 
 const s3 = new S3Client(awsConfig)
 
-async function generateUploadUrl(imageId, filename, contentType) {
-  const key = `uploads/${imageId}/${filename}`
+async function generateUploadUrl(userId, imageId, filename, contentType) {
+  const key = `uploads/${userId}/${imageId}/${filename}`
   const command = new PutObjectCommand({
     Bucket: process.env.S3_BUCKET_NAME,
     Key: key,

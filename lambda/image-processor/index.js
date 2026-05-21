@@ -6,11 +6,12 @@ exports.handler = async (event) => {
   const bucket = record.s3.bucket.name
   const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
 
-  // Key format: uploads/{imageId}/{filename}
+  // Key format: uploads/{userId}/{imageId}/{filename}
   const parts = key.split('/')
-  const imageId = parts[1]
-  const filename = parts[2]
+  const userId   = parts[1]
+  const imageId  = parts[2]
+  const filename = parts[3]
 
   const labels = await processImage(bucket, key)
-  await saveLabels(imageId, filename, key, labels)
+  await saveLabels(userId, imageId, filename, key, labels)
 }

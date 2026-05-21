@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
-const { DynamoDBDocumentClient, GetCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb')
+const { DynamoDBDocumentClient, GetCommand, ScanCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb')
 const awsConfig = require('../config/aws')
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient(awsConfig))
@@ -19,4 +19,15 @@ async function scanImages() {
   return result.Items || []
 }
 
-module.exports = { getLabels, scanImages }
+async function queryByUser(userId) {
+  const result = await dynamo.send(new QueryCommand({
+    TableName: process.env.DYNAMODB_TABLE_NAME,
+    IndexName: 'userId-processedAt-index',
+    KeyConditionExpression: 'userId = :uid',
+    ExpressionAttributeValues: { ':uid': userId },
+    ScanIndexForward: false,
+  }))
+  return result.Items || []
+}
+
+module.exports = { getLabels, scanImages, queryByUser }
