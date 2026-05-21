@@ -8,6 +8,7 @@ env:
     REGION: "us-east-1"
     FRONTEND_BUCKET: "imagify-frontend"
     LAMBDA_FUNCTION: "imagify-image-processor"
+    EC2_INSTANCE_ID: "i-026a5d2e50501b7aa"
 
 phases:
   install:
@@ -30,11 +31,16 @@ phases:
       # Deploy Lambda
       - aws lambda update-function-code --function-name $LAMBDA_FUNCTION --zip-file fileb://imagify-processor.zip --region $REGION
 
-      # Deploy backend on EC2 via SSM (EC2_INSTANCE_ID set in CodeBuild env vars)
+      # Deploy backend on EC2 via SSM
       - |
-        echo "Deploying to EC2 instance: $EC2_INSTANCE_ID"
-        aws ssm send-command \
+        COMMAND_ID=$(aws ssm send-command \
           --instance-ids "$EC2_INSTANCE_ID" \
           --document-name "AWS-RunShellScript" \
-          --parameters 'commands=["cd /home/ec2-user/Imagify/backend && git pull && npm ci --omit=dev && pm2 restart imagify-backend"]' \
+          --parameters 'commands=["runuser -l ec2-user -c \"source /home/ec2-user/.nvm/nvm.sh && cd /home/ec2-user/Imagify/backend && git pull && npm ci --omit=dev && pm2 restart imagify-backend\""]' \
+          --region $REGION \
+          --query "Command.CommandId" \
+          --output text)
+        aws ssm wait command-executed \
+          --command-id "$COMMAND_ID" \
+          --instance-id "$EC2_INSTANCE_ID" \
           --region $REGION
