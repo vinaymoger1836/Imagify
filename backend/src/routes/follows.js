@@ -30,3 +30,6 @@ router.get('/:followeeId', async (req, res, next) => {
 })
 
 module.exports = router
+
+
+
