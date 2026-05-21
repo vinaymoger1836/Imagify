@@ -36,7 +36,7 @@ phases:
         COMMAND_ID=$(aws ssm send-command \
           --instance-ids "$EC2_INSTANCE_ID" \
           --document-name "AWS-RunShellScript" \
-          --parameters 'commands=["runuser -l ec2-user -c \"source /home/ec2-user/.nvm/nvm.sh && cd /home/ec2-user/Imagify/backend && git pull && npm ci --omit=dev && pm2 restart imagify-backend\""]' \
+          --parameters 'commands=["runuser -l ec2-user -c \"export PATH=/usr/local/bin:/usr/bin:/bin:$PATH && cd /home/ec2-user/Imagify/backend && git pull && npm ci --omit=dev && pm2 restart imagify-backend\""]' \
           --region $REGION \
           --query "Command.CommandId" \
           --output text)
