@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getTheme, setTheme } from '../utils/theme.js'
+import { signOut, getUserEmail } from '../utils/auth.js'
 
 const SunIcon = () => (
   <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -28,13 +30,22 @@ const THEMES = [
 ]
 
 export default function Header({ searchQuery, onSearchChange, onUploadClick }) {
+  const navigate = useNavigate()
   const [theme, setThemeState] = useState(getTheme)
   const [open, setOpen] = useState(false)
-  const ref = useRef()
+  const [userOpen, setUserOpen] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
+  const themeRef = useRef()
+  const userRef = useRef()
+
+  useEffect(() => {
+    getUserEmail().then(email => setUserEmail(email || ''))
+  }, [])
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+      if (themeRef.current && !themeRef.current.contains(e.target)) setOpen(false)
+      if (userRef.current && !userRef.current.contains(e.target)) setUserOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -46,7 +57,13 @@ export default function Header({ searchQuery, onSearchChange, onUploadClick }) {
     setOpen(false)
   }
 
+  function handleSignOut() {
+    signOut()
+    navigate('/auth', { replace: true })
+  }
+
   const current = THEMES.find(t => t.key === theme)
+  const initials = userEmail ? userEmail.slice(0, 2).toUpperCase() : '?'
 
   return (
     <header className="header">
@@ -64,7 +81,7 @@ export default function Header({ searchQuery, onSearchChange, onUploadClick }) {
         />
       </div>
 
-      <div className="theme-toggle" ref={ref}>
+      <div className="theme-toggle" ref={themeRef}>
         <button className="btn-icon" onClick={() => setOpen(o => !o)} title="Change theme">
           <current.Icon />
         </button>
@@ -80,6 +97,20 @@ export default function Header({ searchQuery, onSearchChange, onUploadClick }) {
                 <span>{label}</span>
               </button>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="user-menu" ref={userRef}>
+        <button className="user-avatar" onClick={() => setUserOpen(o => !o)} title={userEmail}>
+          {initials}
+        </button>
+        {userOpen && (
+          <div className="user-dropdown">
+            <div className="user-email-display">{userEmail}</div>
+            <button className="user-signout-btn" onClick={handleSignOut}>
+              Sign out
+            </button>
           </div>
         )}
       </div>
