@@ -8,7 +8,6 @@ env:
     REGION: "us-east-1"
     FRONTEND_BUCKET: "imagify-frontend"
     LAMBDA_FUNCTION: "imagify-image-processor"
-    EC2_INSTANCE_ID: ""
 
 phases:
   install:
