@@ -72,3 +72,4 @@ router.get('/:imageId/labels', async (req, res, next) => {
 })
 
 module.exports = router
+
