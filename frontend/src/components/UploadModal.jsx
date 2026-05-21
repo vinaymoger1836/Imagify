@@ -2,14 +2,20 @@ import { useState, useRef } from 'react'
 
 export default function UploadModal({ onClose, onUpload }) {
   const [file, setFile] = useState(null)
+  const [postName, setPostName] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef()
+
+  function handleFile(selected) {
+    if (!selected?.type.startsWith('image/')) return
+    setFile(selected)
+    setPostName(selected.name.replace(/\.[^.]+$/, ''))
+  }
 
   function handleDrop(e) {
     e.preventDefault()
     setDragOver(false)
-    const dropped = e.dataTransfer.files[0]
-    if (dropped?.type.startsWith('image/')) setFile(dropped)
+    handleFile(e.dataTransfer.files[0])
   }
 
   return (
@@ -37,15 +43,29 @@ export default function UploadModal({ onClose, onUpload }) {
             type="file"
             accept="image/*"
             style={{ display: 'none' }}
-            onChange={e => setFile(e.target.files[0])}
+            onChange={e => handleFile(e.target.files[0])}
           />
         </div>
+
+        {file && (
+          <div className="form-group" style={{ marginTop: 16 }}>
+            <label>Post name</label>
+            <input
+              type="text"
+              value={postName}
+              onChange={e => setPostName(e.target.value)}
+              placeholder="Give your post a name"
+              autoFocus
+            />
+          </div>
+        )}
+
         <div className="modal-actions">
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
           <button
             className="btn-primary"
-            onClick={() => file && onUpload(file)}
-            disabled={!file}
+            onClick={() => file && postName.trim() && onUpload(file, postName.trim())}
+            disabled={!file || !postName.trim()}
           >
             Upload
           </button>

@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid')
 const { generateUploadUrl, getImageUrl } = require('../services/s3')
 const { getLabels, scanImages, queryByUser } = require('../services/dynamodb')
 const { getFollowingIds } = require('../services/follows')
+const { getReactionCounts, getUserReaction } = require('../services/reactions')
 
 const router = express.Router()
 
@@ -23,14 +24,22 @@ router.get('/', async (req, res, next) => {
     const images = await Promise.all(
       items
         .filter(item => item.s3Key)
-        .map(async item => ({
-          imageId: item.imageId,
-          userId: item.userId || null,
-          filename: item.filename,
-          labels: item.labels || [],
-          processedAt: item.processedAt,
-          imageUrl: await getImageUrl(item.s3Key),
-        }))
+        .map(async item => {
+          const [imageUrl, counts, userReaction] = await Promise.all([
+            getImageUrl(item.s3Key),
+            getReactionCounts(item.imageId),
+            getUserReaction(item.imageId, req.user.userId),
+          ])
+          return {
+            imageId: item.imageId,
+            userId: item.userId || null,
+            filename: item.filename,
+            labels: item.labels || [],
+            processedAt: item.processedAt,
+            imageUrl,
+            reactions: { ...counts, userReaction },
+          }
+        })
     )
     images.sort((a, b) => new Date(b.processedAt) - new Date(a.processedAt))
     res.json(images)

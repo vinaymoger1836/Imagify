@@ -42,11 +42,11 @@ export default function Home() {
     }
   }
 
-  async function handleUpload(file) {
+  async function handleUpload(file, postName) {
     setShowUpload(false)
     setProgressStatus('uploading')
     try {
-      const { uploadUrl, imageId } = await getPresignedUrl(file.name, file.type)
+      const { uploadUrl, imageId } = await getPresignedUrl(postName, file.type)
       await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
       setProgressStatus('processing')
       await pollForLabels(imageId)

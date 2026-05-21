@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getLabelColor } from '../utils/labelColors.js'
 import {
-  fetchReactions, setReaction, removeReaction,
+  setReaction, removeReaction,
   fetchFollowStatus, followUser, unfollowUser,
 } from '../services/api.js'
 
@@ -24,7 +24,9 @@ const ThumbDownIcon = ({ filled }) => (
 export default function ImageCard({ image, currentUserId }) {
   const { imageId, userId, filename, imageUrl, labels, processedAt } = image
   const [imgLoaded, setImgLoaded] = useState(false)
-  const [reactions, setReactions] = useState({ likes: 0, dislikes: 0, userReaction: null })
+  const [reactions, setReactions] = useState(
+    image.reactions ?? { likes: 0, dislikes: 0, userReaction: null }
+  )
   const [following, setFollowing] = useState(null)
 
   const isOwn = userId && userId === currentUserId
@@ -36,7 +38,6 @@ export default function ImageCard({ image, currentUserId }) {
   })
 
   useEffect(() => {
-    fetchReactions(imageId).then(setReactions).catch(() => {})
     if (!isOwn && userId) {
       fetchFollowStatus(userId).then(d => setFollowing(d.following)).catch(() => {})
     }
