@@ -269,6 +269,70 @@ body {
   margin-bottom: 8px;
 }
 
+.card-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.card-header-row .card-filename {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-follow {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-hover);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.btn-follow:hover:not(:disabled) { background: var(--bg-input); color: var(--text-primary); }
+.btn-follow.following {
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border-color: var(--btn-bg);
+}
+.btn-follow.following:hover:not(:disabled) { background: var(--btn-bg-hover); border-color: var(--btn-bg-hover); }
+.btn-follow:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.card-actions {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.reaction-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+.reaction-btn:hover { background: var(--bg-input); color: var(--text-primary); }
+.reaction-btn:active { transform: scale(0.92); }
+.reaction-btn.active.like { color: #2f9e44; }
+.reaction-btn.active.dislike { color: #e03131; }
+
 .card-labels {
   display: flex;
   flex-wrap: wrap;
@@ -525,6 +589,36 @@ body {
   justify-content: center;
   margin-bottom: 12px;
   font-weight: 700;
+}
+
+/* ── Feed tabs ── */
+.feed-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 24px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.25s, border-color 0.25s;
+}
+
+.feed-tab {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.feed-tab:hover { color: var(--text-primary); background: var(--bg-input); }
+.feed-tab.active {
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border-color: var(--border-hover);
+  font-weight: 600;
 }
 
 /* ── User menu ── */

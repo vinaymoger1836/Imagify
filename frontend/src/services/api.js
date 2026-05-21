@@ -7,6 +7,15 @@ async function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+export async function fetchImages(feed = 'global') {
+  const query = feed === 'following' ? '?feed=following' : ''
+  const res = await fetch(`${API_BASE}/images${query}`, {
+    headers: await authHeaders(),
+  })
+  if (!res.ok) throw new Error('Failed to fetch images')
+  return res.json()
+}
+
 export async function getPresignedUrl(filename, contentType) {
   const params = new URLSearchParams({ filename, contentType })
   const res = await fetch(`${API_BASE}/images/upload-url?${params}`, {
@@ -25,10 +34,55 @@ export async function fetchLabels(imageId) {
   return data.labels || []
 }
 
-export async function fetchImages() {
-  const res = await fetch(`${API_BASE}/images`, {
+export async function fetchReactions(imageId) {
+  const res = await fetch(`${API_BASE}/images/${imageId}/reactions`, {
     headers: await authHeaders(),
   })
-  if (!res.ok) throw new Error('Failed to fetch images')
+  if (!res.ok) throw new Error('Failed to fetch reactions')
+  return res.json()
+}
+
+export async function setReaction(imageId, type) {
+  const res = await fetch(`${API_BASE}/images/${imageId}/reactions`, {
+    method: 'PUT',
+    headers: { ...await authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type }),
+  })
+  if (!res.ok) throw new Error('Failed to set reaction')
+  return res.json()
+}
+
+export async function removeReaction(imageId) {
+  const res = await fetch(`${API_BASE}/images/${imageId}/reactions`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  })
+  if (!res.ok) throw new Error('Failed to remove reaction')
+  return res.json()
+}
+
+export async function fetchFollowStatus(followeeId) {
+  const res = await fetch(`${API_BASE}/follows/${followeeId}`, {
+    headers: await authHeaders(),
+  })
+  if (!res.ok) throw new Error('Failed to fetch follow status')
+  return res.json()
+}
+
+export async function followUser(followeeId) {
+  const res = await fetch(`${API_BASE}/follows/${followeeId}`, {
+    method: 'PUT',
+    headers: await authHeaders(),
+  })
+  if (!res.ok) throw new Error('Failed to follow')
+  return res.json()
+}
+
+export async function unfollowUser(followeeId) {
+  const res = await fetch(`${API_BASE}/follows/${followeeId}`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  })
+  if (!res.ok) throw new Error('Failed to unfollow')
   return res.json()
 }

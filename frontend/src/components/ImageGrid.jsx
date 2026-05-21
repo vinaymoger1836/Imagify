@@ -3,7 +3,7 @@ import SkeletonCard from './SkeletonCard.jsx'
 
 const SKELETON_COUNT = 8
 
-export default function ImageGrid({ images, loading }) {
+export default function ImageGrid({ images, loading, currentUserId }) {
   if (loading) {
     return (
       <div className="image-grid">
@@ -28,7 +28,7 @@ export default function ImageGrid({ images, loading }) {
   return (
     <div className="image-grid">
       {images.map(image => (
-        <ImageCard key={image.imageId} image={image} />
+        <ImageCard key={image.imageId} image={image} currentUserId={currentUserId} />
       ))}
     </div>
   )

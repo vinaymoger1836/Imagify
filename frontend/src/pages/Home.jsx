@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import Header from '../components/Header.jsx'
+import FeedTabs from '../components/FeedTabs.jsx'
 import LabelFilter from '../components/LabelFilter.jsx'
 import ImageGrid from '../components/ImageGrid.jsx'
 import UploadModal from '../components/UploadModal.jsx'
 import ProgressModal from '../components/ProgressModal.jsx'
 import { fetchImages, getPresignedUrl, fetchLabels } from '../services/api.js'
+import { getUserId } from '../utils/auth.js'
 
 const POLL_INTERVAL_MS = 2000
 const POLL_MAX_ATTEMPTS = 20
@@ -16,19 +18,29 @@ export default function Home() {
   const [activeLabel, setActiveLabel] = useState(null)
   const [showUpload, setShowUpload] = useState(false)
   const [progressStatus, setProgressStatus] = useState(null)
+  const [feed, setFeed] = useState('global')
+  const [currentUserId, setCurrentUserId] = useState(null)
+
+  useEffect(() => {
+    getUserId().then(setCurrentUserId)
+  }, [])
+
+  useEffect(() => {
+    setLoading(true)
+    fetchImages(feed)
+      .then(setImages)
+      .catch(err => console.error('Failed to load images', err))
+      .finally(() => setLoading(false))
+  }, [feed])
 
   async function loadImages() {
     try {
-      const data = await fetchImages()
+      const data = await fetchImages(feed)
       setImages(data)
     } catch (err) {
       console.error('Failed to load images', err)
-    } finally {
-      setLoading(false)
     }
   }
-
-  useEffect(() => { loadImages() }, [])
 
   async function handleUpload(file) {
     setShowUpload(false)
@@ -82,12 +94,13 @@ export default function Home() {
         onSearchChange={setSearchQuery}
         onUploadClick={() => setShowUpload(true)}
       />
+      <FeedTabs feed={feed} onChange={setFeed} />
       <LabelFilter
         labels={allLabels}
         activeLabel={activeLabel}
         onSelect={setActiveLabel}
       />
-      <ImageGrid images={filtered} loading={loading} />
+      <ImageGrid images={filtered} loading={loading} currentUserId={currentUserId} />
       {showUpload && (
         <UploadModal
           onClose={() => setShowUpload(false)}

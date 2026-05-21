@@ -55,6 +55,17 @@ export function getToken() {
   })
 }
 
+export function getUserId() {
+  return new Promise((resolve) => {
+    const user = userPool.getCurrentUser()
+    if (!user) return resolve(null)
+    user.getSession((err, session) => {
+      if (err || !session?.isValid()) return resolve(null)
+      resolve(session.getAccessToken().decodePayload().sub || null)
+    })
+  })
+}
+
 export function getUserEmail() {
   return new Promise((resolve) => {
     const user = userPool.getCurrentUser()

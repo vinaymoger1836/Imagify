@@ -1,18 +1,29 @@
 const express = require('express')
 const { v4: uuidv4 } = require('uuid')
 const { generateUploadUrl, getImageUrl } = require('../services/s3')
-const { getLabels, scanImages } = require('../services/dynamodb')
+const { getLabels, scanImages, queryByUser } = require('../services/dynamodb')
+const { getFollowingIds } = require('../services/follows')
 
 const router = express.Router()
 
 router.get('/', async (req, res, next) => {
   try {
-    const items = await scanImages()
+    let items
+    if (req.query.feed === 'following') {
+      const followingIds = await getFollowingIds(req.user.userId)
+      if (followingIds.length === 0) return res.json([])
+      const results = await Promise.all(followingIds.map(uid => queryByUser(uid)))
+      items = results.flat()
+    } else {
+      items = await scanImages()
+    }
+
     const images = await Promise.all(
       items
         .filter(item => item.s3Key)
         .map(async item => ({
           imageId: item.imageId,
+          userId: item.userId || null,
           filename: item.filename,
           labels: item.labels || [],
           processedAt: item.processedAt,
