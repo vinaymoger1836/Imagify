@@ -100,7 +100,12 @@ export default function Home() {
         activeLabel={activeLabel}
         onSelect={setActiveLabel}
       />
-      <ImageGrid images={filtered} loading={loading} currentUserId={currentUserId} />
+      <ImageGrid
+        images={filtered}
+        loading={loading}
+        currentUserId={currentUserId}
+        onDelete={imageId => setImages(imgs => imgs.filter(img => img.imageId !== imageId))}
+      />
       {showUpload && (
         <UploadModal
           onClose={() => setShowUpload(false)}

@@ -86,3 +86,33 @@ export async function unfollowUser(followeeId) {
   if (!res.ok) throw new Error('Failed to unfollow')
   return res.json()
 }
+
+export async function fetchUserProfile(userId) {
+  const res = await fetch(`${API_BASE}/users/${userId}`, {
+    headers: await authHeaders(),
+  })
+  if (!res.ok) throw new Error('Failed to fetch profile')
+  return res.json()
+}
+
+export async function deleteImage(imageId) {
+  const res = await fetch(`${API_BASE}/images/${imageId}`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+  })
+  if (!res.ok) throw new Error('Failed to delete image')
+  return res.json()
+}
+
+export async function downloadImage(imageUrl, filename) {
+  const res = await fetch(imageUrl)
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}

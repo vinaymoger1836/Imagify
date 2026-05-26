@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
-const { DynamoDBDocumentClient, PutCommand, DeleteCommand, GetCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb')
+const { DynamoDBDocumentClient, PutCommand, DeleteCommand, GetCommand, QueryCommand, BatchWriteCommand } = require('@aws-sdk/lib-dynamodb')
 const awsConfig = require('../config/aws')
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient(awsConfig))
@@ -40,4 +40,25 @@ async function getReactionCounts(imageId) {
   }
 }
 
-module.exports = { setReaction, removeReaction, getUserReaction, getReactionCounts }
+async function deleteAllReactions(imageId) {
+  const result = await dynamo.send(new QueryCommand({
+    TableName: TABLE,
+    KeyConditionExpression: 'imageId = :iid',
+    ExpressionAttributeValues: { ':iid': imageId },
+    ProjectionExpression: 'imageId, userId',
+  }))
+  const items = result.Items || []
+  if (items.length === 0) return
+  for (let i = 0; i < items.length; i += 25) {
+    const chunk = items.slice(i, i + 25)
+    await dynamo.send(new BatchWriteCommand({
+      RequestItems: {
+        [TABLE]: chunk.map(item => ({
+          DeleteRequest: { Key: { imageId: item.imageId, userId: item.userId } },
+        })),
+      },
+    }))
+  }
+}
+
+module.exports = { setReaction, removeReaction, getUserReaction, getReactionCounts, deleteAllReactions }

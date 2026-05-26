@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
-const { DynamoDBDocumentClient, GetCommand, ScanCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb')
+const { DynamoDBDocumentClient, GetCommand, ScanCommand, QueryCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb')
 const awsConfig = require('../config/aws')
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient(awsConfig))
@@ -30,4 +30,19 @@ async function queryByUser(userId) {
   return result.Items || []
 }
 
-module.exports = { getLabels, scanImages, queryByUser }
+async function getImage(imageId) {
+  const result = await dynamo.send(new GetCommand({
+    TableName: process.env.DYNAMODB_TABLE_NAME,
+    Key: { imageId },
+  }))
+  return result.Item || null
+}
+
+async function deleteImage(imageId) {
+  await dynamo.send(new DeleteCommand({
+    TableName: process.env.DYNAMODB_TABLE_NAME,
+    Key: { imageId },
+  }))
+}
+
+module.exports = { getLabels, scanImages, queryByUser, getImage, deleteImage }

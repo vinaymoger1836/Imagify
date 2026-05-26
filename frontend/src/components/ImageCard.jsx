@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getLabelColor } from '../utils/labelColors.js'
 import {
   setReaction, removeReaction,
   fetchFollowStatus, followUser, unfollowUser,
+  deleteImage, downloadImage,
 } from '../services/api.js'
 
 const MAX_VISIBLE = 3
@@ -21,13 +23,33 @@ const ThumbDownIcon = ({ filled }) => (
   </svg>
 )
 
-export default function ImageCard({ image, currentUserId }) {
+const DownloadIcon = () => (
+  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+)
+
+const TrashIcon = () => (
+  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+    <path d="M10 11v6M14 11v6"/>
+    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </svg>
+)
+
+export default function ImageCard({ image, currentUserId, onDelete }) {
+  const navigate = useNavigate()
   const { imageId, userId, filename, imageUrl, labels, processedAt } = image
   const [imgLoaded, setImgLoaded] = useState(false)
   const [reactions, setReactions] = useState(
     image.reactions ?? { likes: 0, dislikes: 0, userReaction: null }
   )
   const [following, setFollowing] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const isOwn = userId && userId === currentUserId
   const visible = labels.slice(0, MAX_VISIBLE)
@@ -74,6 +96,27 @@ export default function ImageCard({ image, currentUserId }) {
     }
   }
 
+  async function handleDownload() {
+    try {
+      await downloadImage(imageUrl, filename)
+    } catch (err) {
+      console.error('Download failed', err)
+    }
+  }
+
+  async function handleDelete() {
+    setDeleteLoading(true)
+    try {
+      await deleteImage(imageId)
+      onDelete?.(imageId)
+    } catch (err) {
+      console.error('Delete failed', err)
+      setDeleting(false)
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
   return (
     <div className="image-card">
       <img
@@ -96,7 +139,14 @@ export default function ImageCard({ image, currentUserId }) {
             </button>
           )}
         </div>
-        <div className="card-date">{date}</div>
+        <div className="card-meta">
+          <span className="card-date">{date}</span>
+          {userId && (
+            <button className="card-uploader-link" onClick={() => navigate(`/user/${userId}`)}>
+              {isOwn ? 'You' : `@${userId.slice(0, 8)}`}
+            </button>
+          )}
+        </div>
         <div className="card-labels">
           {visible.map(label => {
             const color = getLabelColor(label.name)
@@ -109,22 +159,42 @@ export default function ImageCard({ image, currentUserId }) {
           {overflow > 0 && <span className="label-overflow">+{overflow}</span>}
         </div>
       </div>
-      <div className="card-actions">
-        <button
-          className={`reaction-btn ${reactions.userReaction === 'like' ? 'active like' : ''}`}
-          onClick={() => handleReaction('like')}
-        >
-          <ThumbUpIcon filled={reactions.userReaction === 'like'} />
-          <span>{reactions.likes}</span>
-        </button>
-        <button
-          className={`reaction-btn ${reactions.userReaction === 'dislike' ? 'active dislike' : ''}`}
-          onClick={() => handleReaction('dislike')}
-        >
-          <ThumbDownIcon filled={reactions.userReaction === 'dislike'} />
-          <span>{reactions.dislikes}</span>
-        </button>
-      </div>
+
+      {deleting ? (
+        <div className="card-actions card-delete-confirm">
+          <span className="delete-confirm-text">Delete this image?</span>
+          <button className="btn-delete-cancel" onClick={() => setDeleting(false)} disabled={deleteLoading}>Cancel</button>
+          <button className="btn-delete-confirm" onClick={handleDelete} disabled={deleteLoading}>
+            {deleteLoading ? '…' : 'Delete'}
+          </button>
+        </div>
+      ) : (
+        <div className="card-actions">
+          <button
+            className={`reaction-btn ${reactions.userReaction === 'like' ? 'active like' : ''}`}
+            onClick={() => handleReaction('like')}
+          >
+            <ThumbUpIcon filled={reactions.userReaction === 'like'} />
+            <span>{reactions.likes}</span>
+          </button>
+          <button
+            className={`reaction-btn ${reactions.userReaction === 'dislike' ? 'active dislike' : ''}`}
+            onClick={() => handleReaction('dislike')}
+          >
+            <ThumbDownIcon filled={reactions.userReaction === 'dislike'} />
+            <span>{reactions.dislikes}</span>
+          </button>
+          <div style={{ flex: 1 }} />
+          <button className="reaction-btn" onClick={handleDownload} title="Download">
+            <DownloadIcon />
+          </button>
+          {isOwn && (
+            <button className="reaction-btn trash-btn" onClick={() => setDeleting(true)} title="Delete">
+              <TrashIcon />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

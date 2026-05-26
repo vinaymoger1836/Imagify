@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getTheme, setTheme } from '../utils/theme.js'
-import { signOut, getUserEmail } from '../utils/auth.js'
+import { signOut, getUserEmail, getUserId } from '../utils/auth.js'
 
 const SunIcon = () => (
   <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -35,11 +35,13 @@ export default function Header({ searchQuery, onSearchChange, onUploadClick }) {
   const [open, setOpen] = useState(false)
   const [userOpen, setUserOpen] = useState(false)
   const [userEmail, setUserEmail] = useState('')
+  const [currentUserId, setCurrentUserId] = useState(null)
   const themeRef = useRef()
   const userRef = useRef()
 
   useEffect(() => {
     getUserEmail().then(email => setUserEmail(email || ''))
+    getUserId().then(id => setCurrentUserId(id))
   }, [])
 
   useEffect(() => {
@@ -62,24 +64,32 @@ export default function Header({ searchQuery, onSearchChange, onUploadClick }) {
     navigate('/auth', { replace: true })
   }
 
+  function handleProfile() {
+    setUserOpen(false)
+    if (currentUserId) navigate(`/user/${currentUserId}`)
+  }
+
   const current = THEMES.find(t => t.key === theme)
   const initials = userEmail ? userEmail.slice(0, 2).toUpperCase() : '?'
 
   return (
     <header className="header">
-      <span className="header-logo">Imagify</span>
-      <div className="search-bar">
-        <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.35-4.35" />
-        </svg>
-        <input
-          type="text"
-          placeholder="Search labels..."
-          value={searchQuery}
-          onChange={e => onSearchChange(e.target.value)}
-        />
-      </div>
+      <span className="header-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>Imagify</span>
+
+      {onSearchChange && (
+        <div className="search-bar">
+          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search labels..."
+            value={searchQuery}
+            onChange={e => onSearchChange(e.target.value)}
+          />
+        </div>
+      )}
 
       <div className="theme-toggle" ref={themeRef}>
         <button className="btn-icon" onClick={() => setOpen(o => !o)} title="Change theme">
@@ -108,19 +118,20 @@ export default function Header({ searchQuery, onSearchChange, onUploadClick }) {
         {userOpen && (
           <div className="user-dropdown">
             <div className="user-email-display">{userEmail}</div>
-            <button className="user-signout-btn" onClick={handleSignOut}>
-              Sign out
-            </button>
+            <button className="user-dropdown-btn" onClick={handleProfile}>My Profile</button>
+            <button className="user-signout-btn" onClick={handleSignOut}>Sign out</button>
           </div>
         )}
       </div>
 
-      <button className="btn-upload" onClick={onUploadClick}>
-        <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        Upload
-      </button>
+      {onUploadClick && (
+        <button className="btn-upload" onClick={onUploadClick}>
+          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Upload
+        </button>
+      )}
     </header>
   )
 }

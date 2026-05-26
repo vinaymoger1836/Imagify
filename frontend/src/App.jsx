@@ -5,6 +5,7 @@ import { getToken } from './utils/auth.js'
 
 const Home = lazy(() => import('./pages/Home.jsx'))
 const AuthPage = lazy(() => import('./pages/AuthPage.jsx'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'))
 
 function PageSkeleton() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/" element={<AuthGuard><Home /></AuthGuard>} />
+          <Route path="/user/:userId" element={<AuthGuard><ProfilePage /></AuthGuard>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

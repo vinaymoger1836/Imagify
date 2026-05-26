@@ -1,9 +1,9 @@
 const express = require('express')
 const { v4: uuidv4 } = require('uuid')
-const { generateUploadUrl, getImageUrl } = require('../services/s3')
-const { getLabels, scanImages, queryByUser } = require('../services/dynamodb')
+const { generateUploadUrl, getImageUrl, deleteObject } = require('../services/s3')
+const { getLabels, scanImages, queryByUser, getImage, deleteImage } = require('../services/dynamodb')
 const { getFollowingIds } = require('../services/follows')
-const { getReactionCounts, getUserReaction } = require('../services/reactions')
+const { getReactionCounts, getUserReaction, deleteAllReactions } = require('../services/reactions')
 
 const router = express.Router()
 
@@ -66,6 +66,22 @@ router.get('/:imageId/labels', async (req, res, next) => {
   try {
     const labels = await getLabels(req.params.imageId)
     res.json({ imageId: req.params.imageId, labels })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.delete('/:imageId', async (req, res, next) => {
+  try {
+    const item = await getImage(req.params.imageId)
+    if (!item) return res.status(404).json({ error: 'Not found' })
+    if (item.userId !== req.user.userId) return res.status(403).json({ error: 'Forbidden' })
+    await Promise.all([
+      deleteObject(item.s3Key),
+      deleteImage(req.params.imageId),
+      deleteAllReactions(req.params.imageId),
+    ])
+    res.json({ success: true })
   } catch (err) {
     next(err)
   }

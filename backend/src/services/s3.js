@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3')
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 const awsConfig = require('../config/aws')
 
@@ -23,4 +23,11 @@ async function getImageUrl(key) {
   return getSignedUrl(s3, command, { expiresIn: 3600 })
 }
 
-module.exports = { generateUploadUrl, getImageUrl }
+async function deleteObject(key) {
+  await s3.send(new DeleteObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+  }))
+}
+
+module.exports = { generateUploadUrl, getImageUrl, deleteObject }
