@@ -272,19 +272,3 @@ All resources in `us-east-1`.
 
 ---
 
-## Completed Phases
-
-- [x] Phase 1 — S3, DynamoDB, IAM roles
-- [x] Phase 2 — Lambda + Rekognition pipeline
-- [x] Phase 3 — Express API on EC2, nginx + PM2, presigned URLs, gallery UI
-- [x] Phase 4 — Cognito authentication (sign up / confirm / sign in / sign out)
-- [x] Phase 5 — User attribution (`userId` on every upload + DynamoDB GSI)
-- [x] Phase 6 — Social features: follows, likes/dislikes, global/following/mine feeds
-- [x] Phase 7 — Profiles, delete, download tracking, engagement analytics
-- [x] Phase 8 — API Gateway: JWT authorizer, throttling, CORS
-- [x] CI/CD — CodePipeline auto-deploys frontend (S3), Lambda, and backend (EC2) on push to `main`
-
-## Roadmap
-
-- [ ] **Phase 9** — SQS between S3 and Lambda (decouple, retry, DLQ)
-- [ ] **Phase 10** — Image optimisation at scale (deduplication, WebP derivatives, CloudFront CDN, S3 lifecycle)
