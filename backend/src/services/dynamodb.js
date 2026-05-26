@@ -1,5 +1,5 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
-const { DynamoDBDocumentClient, GetCommand, ScanCommand, QueryCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb')
+const { DynamoDBDocumentClient, GetCommand, ScanCommand, QueryCommand, DeleteCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb')
 const awsConfig = require('../config/aws')
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient(awsConfig))
@@ -45,4 +45,13 @@ async function deleteImage(imageId) {
   }))
 }
 
-module.exports = { getLabels, scanImages, queryByUser, getImage, deleteImage }
+async function incrementDownloads(imageId) {
+  await dynamo.send(new UpdateCommand({
+    TableName: process.env.DYNAMODB_TABLE_NAME,
+    Key: { imageId },
+    UpdateExpression: 'ADD downloadCount :one',
+    ExpressionAttributeValues: { ':one': 1 },
+  }))
+}
+
+module.exports = { getLabels, scanImages, queryByUser, getImage, deleteImage, incrementDownloads }

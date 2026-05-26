@@ -87,6 +87,21 @@ export async function unfollowUser(followeeId) {
   return res.json()
 }
 
+export async function fetchFollowers(userId) {
+  const res = await fetch(`${API_BASE}/users/${userId}/followers`, {
+    headers: await authHeaders(),
+  })
+  if (!res.ok) throw new Error('Failed to fetch followers')
+  return res.json()
+}
+
+export async function recordDownload(imageId) {
+  await fetch(`${API_BASE}/images/${imageId}/download`, {
+    method: 'POST',
+    headers: await authHeaders(),
+  }).catch(() => {})
+}
+
 export async function fetchUserProfile(userId) {
   const res = await fetch(`${API_BASE}/users/${userId}`, {
     headers: await authHeaders(),

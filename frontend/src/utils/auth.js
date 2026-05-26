@@ -76,3 +76,17 @@ export function getUserEmail() {
     })
   })
 }
+
+export function changePassword(oldPassword, newPassword) {
+  return new Promise((resolve, reject) => {
+    const user = userPool.getCurrentUser()
+    if (!user) return reject(new Error('Not signed in'))
+    user.getSession((err) => {
+      if (err) return reject(err)
+      user.changePassword(oldPassword, newPassword, (pwErr, result) => {
+        if (pwErr) reject(pwErr)
+        else resolve(result)
+      })
+    })
+  })
+}

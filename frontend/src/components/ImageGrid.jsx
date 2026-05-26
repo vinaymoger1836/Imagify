@@ -3,7 +3,7 @@ import SkeletonCard from './SkeletonCard.jsx'
 
 const SKELETON_COUNT = 8
 
-export default function ImageGrid({ images, loading, currentUserId, onDelete }) {
+export default function ImageGrid({ images, loading, onOpen, onUploadClick, showEngagement = false }) {
   if (loading) {
     return (
       <div className="image-grid">
@@ -19,7 +19,12 @@ export default function ImageGrid({ images, loading, currentUserId, onDelete }) 
       <div className="image-grid">
         <div className="empty-state">
           <div className="empty-state-icon">🖼️</div>
-          <p>No images yet. Upload one to get started.</p>
+          <p>No images yet.</p>
+          {onUploadClick && (
+            <button className="btn-primary" style={{ marginTop: 16 }} onClick={onUploadClick}>
+              Upload your first image
+            </button>
+          )}
         </div>
       </div>
     )
@@ -28,7 +33,12 @@ export default function ImageGrid({ images, loading, currentUserId, onDelete }) 
   return (
     <div className="image-grid">
       {images.map(image => (
-        <ImageCard key={image.imageId} image={image} currentUserId={currentUserId} onDelete={onDelete} />
+        <ImageCard
+          key={image.imageId}
+          image={image}
+          onOpen={onOpen}
+          showEngagement={showEngagement}
+        />
       ))}
     </div>
   )

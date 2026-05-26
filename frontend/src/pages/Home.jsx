@@ -5,6 +5,7 @@ import LabelFilter from '../components/LabelFilter.jsx'
 import ImageGrid from '../components/ImageGrid.jsx'
 import UploadModal from '../components/UploadModal.jsx'
 import ProgressModal from '../components/ProgressModal.jsx'
+import ImageDetailModal from '../components/ImageDetailModal.jsx'
 import { fetchImages, getPresignedUrl, fetchLabels } from '../services/api.js'
 import { getUserId } from '../utils/auth.js'
 
@@ -20,6 +21,7 @@ export default function Home() {
   const [progressStatus, setProgressStatus] = useState(null)
   const [feed, setFeed] = useState('global')
   const [currentUserId, setCurrentUserId] = useState(null)
+  const [selectedImage, setSelectedImage] = useState(null)
 
   useEffect(() => {
     getUserId().then(setCurrentUserId)
@@ -64,7 +66,7 @@ export default function Home() {
         const labels = await fetchLabels(imageId)
         if (labels.length > 0) return labels
       } catch {
-        // transient error — keep polling
+        // transient — keep polling
       }
     }
     throw new Error('Timeout')
@@ -103,8 +105,7 @@ export default function Home() {
       <ImageGrid
         images={filtered}
         loading={loading}
-        currentUserId={currentUserId}
-        onDelete={imageId => setImages(imgs => imgs.filter(img => img.imageId !== imageId))}
+        onOpen={setSelectedImage}
       />
       {showUpload && (
         <UploadModal
@@ -116,6 +117,18 @@ export default function Home() {
         <ProgressModal
           status={progressStatus}
           onClose={() => setProgressStatus(null)}
+        />
+      )}
+      {selectedImage && (
+        <ImageDetailModal
+          initialImage={selectedImage}
+          currentUserId={currentUserId}
+          allImages={images}
+          onClose={() => setSelectedImage(null)}
+          onDelete={imageId => {
+            setImages(imgs => imgs.filter(img => img.imageId !== imageId))
+            setSelectedImage(null)
+          }}
         />
       )}
     </>

@@ -47,4 +47,14 @@ async function getFollowingIds(followerId) {
   return (result.Items || []).map(item => item.followeeId)
 }
 
-module.exports = { follow, unfollow, isFollowing, getFollowerCount, getFollowingIds }
+async function getFollowers(followeeId) {
+  const result = await dynamo.send(new QueryCommand({
+    TableName: TABLE,
+    IndexName: 'followeeId-index',
+    KeyConditionExpression: 'followeeId = :fee',
+    ExpressionAttributeValues: { ':fee': followeeId },
+  }))
+  return (result.Items || []).map(item => item.followerId)
+}
+
+module.exports = { follow, unfollow, isFollowing, getFollowerCount, getFollowingIds, getFollowers }

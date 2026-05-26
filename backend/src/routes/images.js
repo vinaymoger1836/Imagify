@@ -1,7 +1,7 @@
 const express = require('express')
 const { v4: uuidv4 } = require('uuid')
 const { generateUploadUrl, getImageUrl, deleteObject } = require('../services/s3')
-const { getLabels, scanImages, queryByUser, getImage, deleteImage } = require('../services/dynamodb')
+const { getLabels, scanImages, queryByUser, getImage, deleteImage, incrementDownloads } = require('../services/dynamodb')
 const { getFollowingIds } = require('../services/follows')
 const { getReactionCounts, getUserReaction, deleteAllReactions } = require('../services/reactions')
 
@@ -36,6 +36,7 @@ router.get('/', async (req, res, next) => {
             filename: item.filename,
             labels: item.labels || [],
             processedAt: item.processedAt,
+            downloadCount: item.downloadCount || 0,
             imageUrl,
             reactions: { ...counts, userReaction },
           }
@@ -66,6 +67,15 @@ router.get('/:imageId/labels', async (req, res, next) => {
   try {
     const labels = await getLabels(req.params.imageId)
     res.json({ imageId: req.params.imageId, labels })
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/:imageId/download', async (req, res, next) => {
+  try {
+    await incrementDownloads(req.params.imageId)
+    res.json({ success: true })
   } catch (err) {
     next(err)
   }

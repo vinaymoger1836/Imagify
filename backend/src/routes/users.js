@@ -1,10 +1,19 @@
 const express = require('express')
 const { queryByUser } = require('../services/dynamodb')
-const { getFollowerCount, getFollowingIds, isFollowing } = require('../services/follows')
+const { getFollowerCount, getFollowingIds, isFollowing, getFollowers } = require('../services/follows')
 const { getReactionCounts, getUserReaction } = require('../services/reactions')
 const { getImageUrl } = require('../services/s3')
 
 const router = express.Router()
+
+router.get('/:userId/followers', async (req, res, next) => {
+  try {
+    const followerIds = await getFollowers(req.params.userId)
+    res.json({ followers: followerIds.map(id => ({ userId: id })) })
+  } catch (err) {
+    next(err)
+  }
+})
 
 router.get('/:userId', async (req, res, next) => {
   try {
@@ -33,6 +42,7 @@ router.get('/:userId', async (req, res, next) => {
             filename: item.filename,
             labels: item.labels || [],
             processedAt: item.processedAt,
+            downloadCount: item.downloadCount || 0,
             imageUrl,
             reactions: { ...counts, userReaction },
           }
