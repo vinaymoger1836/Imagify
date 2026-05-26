@@ -1,56 +1,60 @@
 # Imagify
 
-A Pinterest-like image sharing platform built on AWS. Upload images, get AI-detected labels via Rekognition, follow other users, like/dislike posts, and browse personalised feeds.
+A Pinterest-like image sharing platform built on AWS. Upload images, get AI-detected labels via Rekognition, follow other users, like/dislike posts, browse personalised feeds, and view per-post engagement analytics.
 
-**Live:** S3 static website (URL in CLAUDE.md)
+**Live:** `http://imagify-frontend.s3-website-us-east-1.amazonaws.com`
+
+---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                          Browser                            │
-│                React SPA (Vite + React 18)                  │
-│              S3 Static Website Hosting                      │
-└──────────┬──────────────────────────┬───────────────────────┘
-           │ /api/*                   │ PUT (presigned URL)
-           ▼                          ▼
-┌──────────────────────┐   ┌─────────────────────────┐
-│     Express API      │   │       S3 Bucket          │
-│   EC2 t2.micro       │   │  imagify-images-bucket   │
-│  (nginx + PM2)       │   │                          │
-│                      │   │  uploads/{id}/{filename} │
-│  • presigned URLs    │   └────────────┬─────────────┘
-│  • gallery reads     │                │ S3 Event (PUT)
-└──────────────────────┘                ▼
-           │                 ┌─────────────────────────┐
-           │                 │     Lambda Function      │
-           │                 │  imagify-image-processor │
-           │                 │      Node.js 22.x        │
-           │                 │                          │
-           │                 │  • Rekognition           │
-           │                 │    DetectLabels          │
-           │                 │    (max 10, ≥70%)        │
-           │                 └────────────┬─────────────┘
-           │                              │
-           │                              ▼
-           │                 ┌─────────────────────────┐
-           └────────────────►│        DynamoDB          │
-                             │  imagify-labels          │
-                             │  PK: imageId             │
-                             │  + userId, filename      │
-                             │  + labels[], processedAt │
-                             │  GSI: userId-processedAt │
-                             │                          │
-                             │  imagify-follows         │
-                             │  PK: followerId          │
-                             │  SK: followeeId          │
-                             │  GSI: followeeId-index   │
-                             │                          │
-                             │  imagify-reactions       │
-                             │  PK: imageId             │
-                             │  SK: userId              │
-                             │  + type (like|dislike)   │
-                             └─────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                            Browser                               │
+│                  React SPA (Vite + React 18)                     │
+│                 S3 Static Website Hosting                        │
+└──────────┬───────────────────────────────┬───────────────────────┘
+           │ /api/*  (JWT in header)        │ PUT (presigned URL)
+           ▼                               ▼
+┌──────────────────────┐       ┌───────────────────────────┐
+│   API Gateway        │       │       S3 Bucket            │
+│   HTTP API           │       │   imagify-images-bucket    │
+│                      │       │                            │
+│ • JWT Authorizer     │       │  uploads/{userId}/         │
+│   (Cognito)          │       │    {imageId}/{filename}    │
+│ • Throttling         │       └────────────┬───────────────┘
+│   50 req/s burst 100 │                    │ S3 Event (PUT)
+└──────────┬───────────┘                    ▼
+           │                    ┌───────────────────────────┐
+           ▼                    │      Lambda Function       │
+┌──────────────────────┐        │  imagify-image-processor   │
+│    Express API       │        │       Node.js 22.x         │
+│   EC2 t2.micro       │        │                            │
+│  (nginx + PM2)       │        │  • Rekognition             │
+│                      │        │    DetectLabels            │
+│  • presigned URLs    │        │    (max 10, ≥70% conf.)   │
+│  • gallery + feeds   │        └────────────┬───────────────┘
+│  • social APIs       │                     │
+│  • profile APIs      │                     ▼
+└──────────┬───────────┘       ┌───────────────────────────┐
+           └──────────────────►│          DynamoDB          │
+                               │                            │
+                               │  imagify-labels            │
+                               │  PK: imageId               │
+                               │  + userId, filename, s3Key │
+                               │  + labels[], processedAt   │
+                               │  + downloadCount           │
+                               │  GSI: userId-processedAt   │
+                               │                            │
+                               │  imagify-follows           │
+                               │  PK: followerId            │
+                               │  SK: followeeId            │
+                               │  GSI: followeeId-index     │
+                               │                            │
+                               │  imagify-reactions         │
+                               │  PK: imageId, SK: userId   │
+                               │  + type (like|dislike)     │
+                               └───────────────────────────┘
 ```
 
 ## CI/CD Pipeline
@@ -69,7 +73,7 @@ GitHub (main branch)
          ▼
 ┌───────────────────┐
 │    CodeBuild      │   • npm ci (frontend + lambda)
-│  imagify-build    │   • vite build (React)
+│  imagify-build    │   • vite build (injects VITE_API_URL from env)
 │  Node.js 22.x     │   • zip Lambda
 └────────┬──────────┘
          │
@@ -80,96 +84,129 @@ S3 Sync     Lambda      SSM Run
 frontend/   update-     Command
 dist →      function-   on EC2
 imagify-    code        (git pull +
-frontend              pm2 restart)
+frontend               npm ci +
+                       pm2 restart)
 ```
+
+---
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18, Vite |
+| Frontend | React 18, Vite, React Router v6 |
 | Frontend Hosting | AWS S3 Static Website |
+| API Gateway | AWS API Gateway HTTP API (JWT auth, throttling) |
 | Backend | Node.js, Express |
 | Compute | AWS EC2 t2.micro (Amazon Linux 2023, nginx, PM2) |
 | Storage | AWS S3 |
 | Database | AWS DynamoDB (on-demand) |
 | AI / ML | AWS Rekognition |
 | Serverless | AWS Lambda (Node.js 22.x) |
-| CI/CD | AWS CodePipeline + CodeBuild |
 | Auth | AWS Cognito User Pool + `amazon-cognito-identity-js` |
+| CI/CD | AWS CodePipeline + CodeBuild |
+
+---
 
 ## Directory Structure
 
 ```
 Imagify/
-├── frontend/                   # React SPA
+├── frontend/
 │   └── src/
 │       ├── components/
-│       │   ├── Header.jsx      # Search bar, upload button, user avatar + sign-out
-│       │   ├── FeedTabs.jsx    # All / Following / My Posts tabs
-│       │   ├── LabelFilter.jsx # Clickable label chips
-│       │   ├── ImageGrid.jsx   # Responsive image grid with skeleton loading
-│       │   ├── ImageCard.jsx   # Card: labels, like/dislike, follow button
-│       │   ├── UploadModal.jsx # Drag-and-drop upload + post name input
-│       │   └── ProgressModal.jsx
+│       │   ├── Header.jsx          # Logo, search, theme toggle, user menu
+│       │   ├── FeedTabs.jsx        # All / Following / My Posts tabs
+│       │   ├── LabelFilter.jsx     # Scrollable label chip filter bar
+│       │   ├── ImageGrid.jsx       # Responsive grid with skeleton loading
+│       │   ├── ImageCard.jsx       # Simplified card (image + labels + counts)
+│       │   ├── ImageDetailModal.jsx# Full-screen modal: details, actions, more by owner
+│       │   ├── UploadModal.jsx     # Drag-and-drop upload + post name
+│       │   ├── ProgressModal.jsx   # Upload / Rekognition progress indicator
+│       │   └── SkeletonCard.jsx    # Shimmer placeholder
 │       ├── pages/
-│       │   ├── Home.jsx        # Gallery + upload flow
-│       │   └── AuthPage.jsx    # Sign up / confirm / sign in
+│       │   ├── Home.jsx            # Gallery + upload + modal orchestration
+│       │   ├── AuthPage.jsx        # Sign up / confirm / sign in
+│       │   └── ProfilePage.jsx     # Dashboard: Posts, Followers, Settings tabs
 │       ├── services/
-│       │   └── api.js          # All backend API calls (auth-headered)
+│       │   └── api.js              # All backend API calls (auth-headered fetch)
 │       ├── utils/
-│       │   ├── auth.js         # Cognito SDK wrapper (signUp/signIn/getToken/getUserId)
-│       │   ├── labelColors.js  # Deterministic label chip colours
-│       │   └── theme.js        # Light/dark/system theme util
+│       │   ├── auth.js             # Cognito SDK wrapper
+│       │   ├── labelColors.js      # Deterministic label chip colours (hash-based)
+│       │   └── theme.js            # Light / dark / system theme (localStorage)
 │       └── styles/
-│           └── index.css
-├── backend/                    # Express API (runs on EC2)
+│           └── index.css           # CSS custom properties, all component styles
+├── backend/
 │   └── src/
 │       ├── middleware/
-│       │   └── auth.js         # Cognito JWT verification → req.user.userId
+│       │   └── auth.js             # JWT decode → req.user.userId (API GW verifies sig)
 │       ├── routes/
-│       │   ├── images.js       # GET /, GET /upload-url, GET /:id/labels
-│       │   ├── reactions.js    # PUT/DELETE/GET /:imageId/reactions
-│       │   └── follows.js      # PUT/DELETE/GET /:followeeId
+│       │   ├── images.js           # Gallery, upload URL, labels, download, delete
+│       │   ├── reactions.js        # Like / dislike
+│       │   ├── follows.js          # Follow / unfollow / status
+│       │   └── users.js            # Profile stats, profile images, followers list
 │       ├── services/
-│       │   ├── s3.js           # Presigned URL generation
-│       │   ├── dynamodb.js     # Images + labels queries
-│       │   ├── reactions.js    # Reaction counts + user reaction
-│       │   └── follows.js      # Follow/unfollow + getFollowingIds
+│       │   ├── s3.js               # Presigned URL generation + object delete
+│       │   ├── dynamodb.js         # Images CRUD + download count increment
+│       │   ├── reactions.js        # Reaction counts + batch delete
+│       │   └── follows.js          # Follow/unfollow + GSI queries
 │       └── config/
 │           └── aws.js
 ├── lambda/
-│   └── image-processor/        # Triggered by S3 upload
-│       ├── index.js            # Handler
-│       ├── rekognition.js      # DetectLabels call
-│       └── dynamodb.js         # Write labels to DynamoDB
-└── buildspec.yml               # CodeBuild build + deploy spec
+│   └── image-processor/
+│       ├── index.js                # S3 trigger handler
+│       ├── rekognition.js          # DetectLabels
+│       └── dynamodb.js             # Write labels to imagify-labels
+└── buildspec.yml                   # CodeBuild: build + deploy all 3 targets
 ```
+
+---
 
 ## API Endpoints
 
-All routes require a Cognito `Authorization: Bearer <token>` header.
+All routes require `Authorization: Bearer <cognito-access-token>`. In production the token is verified by API Gateway before reaching EC2.
 
+### Images
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/images` | Gallery — accepts `?feed=global\|following\|mine` |
-| `GET` | `/api/images/upload-url` | Presigned S3 PUT URL for upload |
-| `GET` | `/api/images/:id/labels` | Poll for labels after upload |
-| `PUT` | `/api/images/:id/reactions` | Like or dislike (`{ type: "like"\|"dislike" }`) |
+| `GET` | `/api/images` | Gallery — `?feed=global\|following\|mine` |
+| `GET` | `/api/images/upload-url` | Presigned S3 PUT URL |
+| `GET` | `/api/images/:id/labels` | Poll for Rekognition labels |
+| `POST` | `/api/images/:id/download` | Record a download (increments count) |
+| `DELETE` | `/api/images/:id` | Delete image (owner only) — removes S3 + DynamoDB + reactions |
+
+### Reactions
+| Method | Path | Description |
+|--------|------|-------------|
+| `PUT` | `/api/images/:id/reactions` | Like or dislike `{ type: "like"\|"dislike" }` |
 | `DELETE` | `/api/images/:id/reactions` | Remove reaction |
+| `GET` | `/api/images/:id/reactions` | Counts + current user's reaction |
+
+### Follows
+| Method | Path | Description |
+|--------|------|-------------|
 | `PUT` | `/api/follows/:userId` | Follow a user |
 | `DELETE` | `/api/follows/:userId` | Unfollow a user |
 | `GET` | `/api/follows/:userId` | Follow status + follower count |
 
+### Users / Profiles
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/users/:userId` | Profile stats + images (postCount, followerCount, followingCount, isFollowing) |
+| `GET` | `/api/users/:userId/followers` | List of follower userIds |
+
+---
+
 ## Upload Flow
 
-1. Browser requests a presigned S3 PUT URL from the backend (includes `userId` in key)
-2. Browser PUTs the image directly to S3 (no EC2 bandwidth used)
-3. S3 triggers Lambda (`uploads/{userId}/{imageId}/{filename}`)
-4. Lambda extracts `userId` from the key, calls Rekognition `DetectLabels`
-5. Lambda writes `imageId`, `userId`, `filename`, `s3Key`, `labels[]` to DynamoDB
-6. Browser polls `/api/images/:id/labels` every 2 s until labels appear (up to 40 s)
-7. Gallery refreshes — image, labels, and reaction counts are displayed
+1. Browser requests a presigned S3 PUT URL from the backend (`userId` embedded in the key)
+2. Browser PUTs the image directly to S3 — no EC2 bandwidth used
+3. S3 triggers Lambda on `uploads/{userId}/{imageId}/{filename}`
+4. Lambda calls Rekognition `DetectLabels` and writes labels + userId to DynamoDB
+5. Browser polls `/api/images/:id/labels` every 2 s (up to 40 s) until labels appear
+6. Gallery refreshes — image, labels, reactions, and engagement counts are displayed
+
+---
 
 ## Local Development
 
@@ -177,12 +214,12 @@ All routes require a Cognito `Authorization: Bearer <token>` header.
 # Backend
 cd backend
 npm install
-npm run dev               # http://localhost:3000
+npm run dev          # http://localhost:3000
 
 # Frontend (separate terminal)
 cd frontend
 npm install
-npm run dev               # http://localhost:5173 — proxies /api → :3000
+npm run dev          # http://localhost:5173 — proxies /api → :3000
 ```
 
 ### Required env vars
@@ -191,17 +228,23 @@ npm run dev               # http://localhost:5173 — proxies /api → :3000
 ```
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
-COGNITO_USER_POOL_ID=...
-COGNITO_CLIENT_ID=...
+COGNITO_USER_POOL_ID=us-east-1_Gkon7tum6
+COGNITO_CLIENT_ID=7ctfdoq4bmcrkgnfofnovh1a2g
+DYNAMODB_TABLE_NAME=imagify-labels
+S3_BUCKET_NAME=imagify-images-bucket
 FOLLOWS_TABLE_NAME=imagify-follows
 REACTIONS_TABLE_NAME=imagify-reactions
 ```
 
 `frontend/.env.local` (gitignored):
 ```
-VITE_COGNITO_USER_POOL_ID=...
-VITE_COGNITO_CLIENT_ID=...
+VITE_COGNITO_USER_POOL_ID=us-east-1_Gkon7tum6
+VITE_COGNITO_CLIENT_ID=7ctfdoq4bmcrkgnfofnovh1a2g
 ```
+
+> `VITE_API_URL` is intentionally omitted — the Vite dev server proxies `/api` to `localhost:3000` automatically.
+
+---
 
 ## AWS Infrastructure
 
@@ -211,20 +254,23 @@ All resources in `us-east-1`.
 |----------|------|-------|
 | S3 Bucket | `imagify-images-bucket` | Private; browser access via presigned URLs |
 | S3 Bucket | `imagify-frontend` | Public; static website hosting |
-| S3 Bucket | `imagify-pipeline-artifact` | Private; CodePipeline artifacts |
+| S3 Bucket | `imagify-pipeline-artifact` | CodePipeline artifacts |
 | DynamoDB | `imagify-labels` | PK: imageId; GSI: userId-processedAt-index |
-| DynamoDB | `imagify-follows` | PK: followerId, SK: followeeId; GSI: followeeId-index |
-| DynamoDB | `imagify-reactions` | PK: imageId, SK: userId |
-| Lambda | `imagify-image-processor` | Node.js 22.x, 128 MB, triggered by S3 |
+| DynamoDB | `imagify-follows` | PK: followerId SK: followeeId; GSI: followeeId-index |
+| DynamoDB | `imagify-reactions` | PK: imageId SK: userId |
+| Lambda | `imagify-image-processor` | Node.js 22.x; triggered by S3 PUT |
 | EC2 | `imagify-backend` | t2.micro, Amazon Linux 2023, nginx + PM2 |
-| Cognito | `imagify-user-pool` | Email sign-up/sign-in |
+| API Gateway | `imagify-api` | HTTP API; JWT authorizer (Cognito); 50 req/s throttle |
+| Cognito | `imagify-user-pool` | Email sign-up / sign-in; ID: `us-east-1_Gkon7tum6` |
 | IAM Role | `imagify-lambda-role` | S3 read, Rekognition, DynamoDB write |
 | IAM Role | `imagify-ec2-role` | S3 presigned URLs, DynamoDB full, SSM |
 | IAM Role | `imagify-codebuild-role` | S3 sync, Lambda update, SSM send |
 | IAM User | `imagify-local-dev` | Local development credentials only |
-| CodePipeline | `imagify-pipeline` | Triggered on push to main |
-| CodeBuild | `imagify-build` | Node.js 22, builds + deploys all 3 targets |
+| CodePipeline | `imagify-pipeline` | Triggered on push to `main` |
+| CodeBuild | `imagify-build` | Node.js 22; `VITE_API_URL` set as console env var |
 | GitHub Connection | `imagify-github` | CodeStar Connection |
+
+---
 
 ## Completed Phases
 
@@ -234,11 +280,11 @@ All resources in `us-east-1`.
 - [x] Phase 4 — Cognito authentication (sign up / confirm / sign in / sign out)
 - [x] Phase 5 — User attribution (`userId` on every upload + DynamoDB GSI)
 - [x] Phase 6 — Social features: follows, likes/dislikes, global/following/mine feeds
-- [x] CI/CD — CodePipeline auto-deploys frontend (S3), Lambda, and EC2 backend on push to `main`
+- [x] Phase 7 — Profiles, delete, download tracking, engagement analytics
+- [x] Phase 8 — API Gateway: JWT authorizer, throttling, CORS
+- [x] CI/CD — CodePipeline auto-deploys frontend (S3), Lambda, and backend (EC2) on push to `main`
 
 ## Roadmap
 
-- [ ] Phase 7 — Profiles, delete own images, download with labels
-- [ ] Phase 8 — API Gateway (rate limiting, throttling)
-- [ ] Phase 9 — SQS between S3 and Lambda (decouple + retry)
-- [ ] Phase 10 — Image optimisation at scale (deduplication, WebP derivatives, CloudFront CDN)
+- [ ] **Phase 9** — SQS between S3 and Lambda (decouple, retry, DLQ)
+- [ ] **Phase 10** — Image optimisation at scale (deduplication, WebP derivatives, CloudFront CDN, S3 lifecycle)
