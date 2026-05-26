@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    VITE_API_URL: "http://ec2-54-166-222-14.compute-1.amazonaws.com/api"
+    # VITE_API_URL injected from CodeBuild environment variable (not stored in repo)
     VITE_COGNITO_USER_POOL_ID: "us-east-1_Gkon7tum6"
     VITE_COGNITO_CLIENT_ID: "7ctfdoq4bmcrkgnfofnovh1a2g"
     REGION: "us-east-1"
