@@ -54,4 +54,15 @@ async function incrementDownloads(imageId) {
   }))
 }
 
-module.exports = { getLabels, scanImages, queryByUser, getImage, deleteImage, incrementDownloads }
+async function findByHash(fileHash) {
+  const result = await dynamo.send(new QueryCommand({
+    TableName: process.env.DYNAMODB_TABLE_NAME,
+    IndexName: 'fileHash-index',
+    KeyConditionExpression: 'fileHash = :h',
+    ExpressionAttributeValues: { ':h': fileHash },
+    Limit: 1,
+  }))
+  return result.Items?.[0] || null
+}
+
+module.exports = { getLabels, scanImages, queryByUser, getImage, deleteImage, incrementDownloads, findByHash }

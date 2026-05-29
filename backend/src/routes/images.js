@@ -1,7 +1,7 @@
 const express = require('express')
 const { v4: uuidv4 } = require('uuid')
 const { generateUploadUrl, getImageUrl, deleteObject } = require('../services/s3')
-const { getLabels, scanImages, queryByUser, getImage, deleteImage, incrementDownloads } = require('../services/dynamodb')
+const { getLabels, scanImages, queryByUser, getImage, deleteImage, incrementDownloads, findByHash } = require('../services/dynamodb')
 const { getFollowingIds } = require('../services/follows')
 const { getReactionCounts, getUserReaction, deleteAllReactions } = require('../services/reactions')
 
@@ -50,11 +50,15 @@ router.get('/', async (req, res, next) => {
 })
 
 router.get('/upload-url', async (req, res, next) => {
-  const { filename, contentType } = req.query
+  const { filename, contentType, fileHash } = req.query
   if (!filename || !contentType) {
     return res.status(400).json({ error: 'filename and contentType are required' })
   }
   try {
+    if (fileHash) {
+      const existing = await findByHash(fileHash)
+      if (existing) return res.json({ duplicate: true, imageId: existing.imageId })
+    }
     const imageId = uuidv4()
     const { uploadUrl } = await generateUploadUrl(req.user.userId, imageId, filename, contentType)
     res.json({ uploadUrl, imageId })

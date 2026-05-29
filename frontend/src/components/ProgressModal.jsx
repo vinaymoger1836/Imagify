@@ -15,6 +15,13 @@ export default function ProgressModal({ status, onClose }) {
             <p className="progress-subtitle">Something went wrong. Please try again.</p>
             <button className="btn-primary" style={{ marginTop: 20 }} onClick={onClose}>Close</button>
           </>
+        ) : status === 'duplicate' ? (
+          <>
+            <div className="progress-error-icon" style={{ color: 'var(--accent)' }}>✓</div>
+            <p className="progress-title">Already in your gallery</p>
+            <p className="progress-subtitle">This exact image was uploaded before.</p>
+            <button className="btn-primary" style={{ marginTop: 20 }} onClick={onClose}>Got it</button>
+          </>
         ) : (
           <>
             <div className="progress-spinner" />

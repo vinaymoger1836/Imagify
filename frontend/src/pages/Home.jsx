@@ -44,11 +44,24 @@ export default function Home() {
     }
   }
 
+  async function hashFile(file) {
+    const buffer = await file.arrayBuffer()
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+  }
+
   async function handleUpload(file, postName) {
     setShowUpload(false)
     setProgressStatus('uploading')
     try {
-      const { uploadUrl, imageId } = await getPresignedUrl(postName, file.type)
+      const fileHash = await hashFile(file)
+      const result = await getPresignedUrl(postName, file.type, fileHash)
+      if (result.duplicate) {
+        setProgressStatus('duplicate')
+        loadImages()
+        return
+      }
+      const { uploadUrl, imageId } = result
       await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
       setProgressStatus('processing')
       await pollForLabels(imageId)

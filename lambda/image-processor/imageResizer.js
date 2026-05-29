@@ -1,5 +1,6 @@
 const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
 const sharp = require('sharp')
+const crypto = require('crypto')
 
 const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-1' })
 
@@ -12,6 +13,8 @@ async function streamToBuffer(stream) {
 async function generateDerivatives(bucket, key) {
   const { Body } = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
   const original = await streamToBuffer(Body)
+
+  const fileHash = crypto.createHash('sha256').update(original).digest('hex')
   // Key format: uploads/{userId}/{imageId}/{filename}
   // Derivatives go under derivatives/ prefix so S3 notification (uploads/ only) doesn't re-trigger Lambda
   const parts = key.split('/')
@@ -36,6 +39,8 @@ async function generateDerivatives(bucket, key) {
       ContentType: 'image/webp',
     })),
   ])
+
+  return fileHash
 }
 
 module.exports = { generateDerivatives }

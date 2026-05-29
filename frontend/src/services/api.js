@@ -16,8 +16,9 @@ export async function fetchImages(feed = 'global') {
   return res.json()
 }
 
-export async function getPresignedUrl(filename, contentType) {
+export async function getPresignedUrl(filename, contentType, fileHash) {
   const params = new URLSearchParams({ filename, contentType })
+  if (fileHash) params.set('fileHash', fileHash)
   const res = await fetch(`${API_BASE}/images/upload-url?${params}`, {
     headers: await authHeaders(),
   })

@@ -5,7 +5,7 @@ const dynamo = DynamoDBDocumentClient.from(
   new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' })
 )
 
-async function saveLabels(userId, imageId, filename, s3Key, labels) {
+async function saveLabels(userId, imageId, filename, s3Key, labels, fileHash) {
   await dynamo.send(new PutCommand({
     TableName: process.env.DYNAMODB_TABLE_NAME,
     Item: {
@@ -14,6 +14,7 @@ async function saveLabels(userId, imageId, filename, s3Key, labels) {
       filename,
       s3Key,
       labels,
+      fileHash,
       processedAt: new Date().toISOString(),
     },
   }))
