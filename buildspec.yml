@@ -16,7 +16,7 @@ phases:
       nodejs: 22
     commands:
       - cd frontend && npm ci && cd ..
-      - cd lambda/image-processor && npm ci && cd ../..
+      - cd lambda/image-processor && npm install && cd ../..
 
   build:
     commands:
