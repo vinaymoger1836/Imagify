@@ -20,6 +20,9 @@ npm-debug.log*
 # Sensitive project files
 CLAUDE.md
 
+# Personal docs
+docs/
+
 # OS files
 .DS_Store
 Thumbs.db
