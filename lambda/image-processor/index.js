@@ -1,5 +1,6 @@
 const { processImage } = require('./rekognition')
 const { saveLabels } = require('./dynamodb')
+const { generateDerivatives } = require('./imageResizer')
 
 exports.handler = async (event) => {
   const failures = []
@@ -16,7 +17,11 @@ exports.handler = async (event) => {
       const imageId  = parts[2]
       const filename = parts[3]
 
-      const labels = await processImage(bucket, key)
+      const [labels] = await Promise.all([
+        processImage(bucket, key),
+        generateDerivatives(bucket, key),
+      ])
+
       await saveLabels(userId, imageId, filename, key, labels)
     } catch (err) {
       console.error('Failed to process record', sqsRecord.messageId, err)

@@ -21,7 +21,7 @@ phases:
   build:
     commands:
       - cd frontend && npm run build && cd ..
-      - cd lambda/image-processor && zip -j ../../imagify-processor.zip index.js rekognition.js dynamodb.js && cd ../..
+      - cd lambda/image-processor && zip -r ../../imagify-processor.zip . -x "node_modules/@aws-sdk/*" -x "node_modules/@smithy/*" && cd ../..
 
   post_build:
     commands:
