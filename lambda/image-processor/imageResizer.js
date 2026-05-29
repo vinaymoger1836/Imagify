@@ -12,7 +12,10 @@ async function streamToBuffer(stream) {
 async function generateDerivatives(bucket, key) {
   const { Body } = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
   const original = await streamToBuffer(Body)
-  const basePath = key.substring(0, key.lastIndexOf('/'))
+  // Key format: uploads/{userId}/{imageId}/{filename}
+  // Derivatives go under derivatives/ prefix so S3 notification (uploads/ only) doesn't re-trigger Lambda
+  const parts = key.split('/')
+  const derivativeBase = `derivatives/${parts[1]}/${parts[2]}`
 
   const [thumbBuffer, mediumBuffer] = await Promise.all([
     sharp(original).resize(200, 200, { fit: 'cover' }).webp({ quality: 80 }).toBuffer(),
@@ -22,13 +25,13 @@ async function generateDerivatives(bucket, key) {
   await Promise.all([
     s3.send(new PutObjectCommand({
       Bucket: bucket,
-      Key: `${basePath}/thumb.webp`,
+      Key: `${derivativeBase}/thumb.webp`,
       Body: thumbBuffer,
       ContentType: 'image/webp',
     })),
     s3.send(new PutObjectCommand({
       Bucket: bucket,
-      Key: `${basePath}/medium.webp`,
+      Key: `${derivativeBase}/medium.webp`,
       Body: mediumBuffer,
       ContentType: 'image/webp',
     })),
