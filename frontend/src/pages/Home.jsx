@@ -7,6 +7,7 @@ import UploadModal from '../components/UploadModal.jsx'
 import ProgressModal from '../components/ProgressModal.jsx'
 import ImageDetailModal from '../components/ImageDetailModal.jsx'
 import { fetchImages, getPresignedUrl, fetchLabels } from '../services/api.js'
+import { sha256 } from 'js-sha256'
 import { getUserId } from '../utils/auth.js'
 
 const POLL_INTERVAL_MS = 2000
@@ -45,10 +46,8 @@ export default function Home() {
   }
 
   async function hashFile(file) {
-    if (!crypto?.subtle) return null
     const buffer = await file.arrayBuffer()
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
-    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+    return sha256(buffer)
   }
 
   async function handleUpload(file, postName) {
