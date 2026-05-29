@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLabelColor } from '../utils/labelColors.js'
+import { getMediumUrl, getThumbUrl } from '../utils/cdn.js'
 import {
   setReaction, removeReaction,
   fetchFollowStatus, followUser, unfollowUser,
@@ -49,6 +50,7 @@ export default function ImageDetailModal({ initialImage, currentUserId, allImage
   const [deleteLoading, setDeleteLoading] = useState(false)
 
   const { imageId, userId, filename, imageUrl, labels, processedAt } = image
+  const mediumUrl = getMediumUrl(userId, imageId)
   const isOwn = userId && userId === currentUserId
 
   const moreByOwner = (allImages || [])
@@ -152,9 +154,18 @@ export default function ImageDetailModal({ initialImage, currentUserId, allImage
           <div className="detail-image-pane">
             <img
               key={imageId}
-              src={imageUrl}
+              src={mediumUrl || imageUrl}
               alt={filename}
-              onLoad={() => setImgLoaded(true)}
+              onLoad={e => {
+                const from = e.currentTarget.src.includes('cloudfront.net') ? 'CDN' : 'S3'
+                console.log(`[DetailModal] ${from} ✓ ${imageId}`)
+                setImgLoaded(true)
+              }}
+              onError={mediumUrl ? e => {
+                console.log(`[DetailModal] CDN miss → S3 fallback ${imageId}`)
+                e.currentTarget.onerror = null
+                e.currentTarget.src = imageUrl
+              } : undefined}
               style={{
                 filter: imgLoaded ? 'none' : 'blur(16px)',
                 transform: imgLoaded ? 'scale(1)' : 'scale(1.04)',
@@ -264,7 +275,12 @@ export default function ImageDetailModal({ initialImage, currentUserId, allImage
                       className={`detail-more-thumb ${img.imageId === imageId ? 'active' : ''}`}
                       onClick={() => switchTo(img)}
                     >
-                      <img src={img.imageUrl} alt={img.filename} loading="lazy" />
+                      <img
+                      src={getThumbUrl(img.userId, img.imageId) || img.imageUrl}
+                      alt={img.filename}
+                      loading="lazy"
+                      onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = img.imageUrl }}
+                    />
                     </div>
                   ))}
                 </div>

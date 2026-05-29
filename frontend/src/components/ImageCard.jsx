@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { getLabelColor } from '../utils/labelColors.js'
+import { getThumbUrl } from '../utils/cdn.js'
 
 const MAX_LABELS = 3
 
 export default function ImageCard({ image, onOpen, showEngagement = false }) {
   const { filename, imageUrl, labels, reactions, downloadCount } = image
+  const thumbUrl = getThumbUrl(image.userId, image.imageId)
   const [imgLoaded, setImgLoaded] = useState(false)
 
   const visible = labels.slice(0, MAX_LABELS)
@@ -14,10 +16,19 @@ export default function ImageCard({ image, onOpen, showEngagement = false }) {
     <div className="image-card" onClick={() => onOpen?.(image)}>
       <div className="card-image-wrap">
         <img
-          src={imageUrl}
+          src={thumbUrl || imageUrl}
           alt={filename}
           loading="lazy"
-          onLoad={() => setImgLoaded(true)}
+          onLoad={e => {
+            const from = e.currentTarget.src.includes('cloudfront.net') ? 'CDN' : 'S3'
+            console.log(`[ImageCard] ${from} ✓ ${image.imageId}`)
+            setImgLoaded(true)
+          }}
+          onError={thumbUrl ? e => {
+            console.log(`[ImageCard] CDN miss → S3 fallback ${image.imageId}`)
+            e.currentTarget.onerror = null
+            e.currentTarget.src = imageUrl
+          } : undefined}
           style={{
             filter: imgLoaded ? 'none' : 'blur(12px)',
             transform: imgLoaded ? '' : 'scale(1.05)',

@@ -5,6 +5,7 @@ env:
     # VITE_API_URL injected from CodeBuild environment variable (not stored in repo)
     VITE_COGNITO_USER_POOL_ID: "us-east-1_Gkon7tum6"
     VITE_COGNITO_CLIENT_ID: "7ctfdoq4bmcrkgnfofnovh1a2g"
+    VITE_CDN_URL: "https://d42cq1u765phf.cloudfront.net"
     REGION: "us-east-1"
     FRONTEND_BUCKET: "imagify-frontend"
     LAMBDA_FUNCTION: "imagify-image-processor"
