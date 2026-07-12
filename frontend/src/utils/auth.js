@@ -39,6 +39,26 @@ export function signIn(email, password) {
   })
 }
 
+export function forgotPassword(email) {
+  const user = new CognitoUser({ Username: email, Pool: userPool })
+  return new Promise((resolve, reject) => {
+    user.forgotPassword({
+      onSuccess: resolve,
+      onFailure: reject,
+    })
+  })
+}
+
+export function confirmForgotPassword(email, code, newPassword) {
+  const user = new CognitoUser({ Username: email, Pool: userPool })
+  return new Promise((resolve, reject) => {
+    user.confirmPassword(code, newPassword, {
+      onSuccess: resolve,
+      onFailure: reject,
+    })
+  })
+}
+
 export function signOut() {
   const user = userPool.getCurrentUser()
   if (user) user.signOut()

@@ -1014,6 +1014,21 @@ body {
 
 .auth-switch button:hover { opacity: 0.75; }
 
+.auth-forgot-link {
+  align-self: flex-end;
+  margin-top: -8px;
+  background: none;
+  border: none;
+  color: var(--btn-bg);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.auth-forgot-link:hover { opacity: 0.75; }
+
 /* ── Profile tabs ── */
 .profile-tabs {
   display: flex;
