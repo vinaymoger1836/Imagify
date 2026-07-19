@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Header from '../components/Header.jsx'
 import FeedTabs from '../components/FeedTabs.jsx'
+import SortControl from '../components/SortControl.jsx'
 import LabelFilter from '../components/LabelFilter.jsx'
 import ImageGrid from '../components/ImageGrid.jsx'
 import UploadModal from '../components/UploadModal.jsx'
@@ -9,6 +10,7 @@ import ImageDetailModal from '../components/ImageDetailModal.jsx'
 import { fetchImages, getPresignedUrl, fetchLabels } from '../services/api.js'
 import { sha256 } from 'js-sha256'
 import { getUserId } from '../utils/auth.js'
+import { getSort, setSort as saveSort, sortImages } from '../utils/sort.js'
 
 const POLL_INTERVAL_MS = 2000
 const POLL_MAX_ATTEMPTS = 20
@@ -21,6 +23,7 @@ export default function Home() {
   const [showUpload, setShowUpload] = useState(false)
   const [progressStatus, setProgressStatus] = useState(null)
   const [feed, setFeed] = useState('global')
+  const [sort, setSort] = useState(getSort)
   const [currentUserId, setCurrentUserId] = useState(null)
   const [selectedImage, setSelectedImage] = useState(null)
 
@@ -102,6 +105,13 @@ export default function Home() {
     })
   }, [images, activeLabel, searchQuery])
 
+  const sorted = useMemo(() => sortImages(filtered, sort), [filtered, sort])
+
+  function handleSortChange(key) {
+    setSort(key)
+    saveSort(key)
+  }
+
   return (
     <>
       <Header
@@ -109,14 +119,17 @@ export default function Home() {
         onSearchChange={setSearchQuery}
         onUploadClick={() => setShowUpload(true)}
       />
-      <FeedTabs feed={feed} onChange={setFeed} />
+      <div className="toolbar">
+        <FeedTabs feed={feed} onChange={setFeed} />
+        <SortControl sort={sort} onChange={handleSortChange} />
+      </div>
       <LabelFilter
         labels={allLabels}
         activeLabel={activeLabel}
         onSelect={setActiveLabel}
       />
       <ImageGrid
-        images={filtered}
+        images={sorted}
         loading={loading}
         onOpen={setSelectedImage}
       />

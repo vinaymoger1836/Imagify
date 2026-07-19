@@ -805,13 +805,47 @@ body {
 }
 
 /* ── Feed tabs ── */
-.feed-tabs {
+.toolbar {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   padding: 10px 24px;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   transition: background 0.25s, border-color 0.25s;
+}
+
+.feed-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.sort-control {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sort-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sort-btn:hover { color: var(--text-primary); background: var(--bg-input); }
+.sort-btn.active {
+  color: var(--text-primary);
+  background: var(--bg-input);
+  border-color: var(--border-hover);
+  font-weight: 600;
 }
 
 .feed-tab {
