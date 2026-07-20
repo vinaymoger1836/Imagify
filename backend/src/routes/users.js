@@ -1,7 +1,7 @@
 const express = require('express')
 const { queryByUser } = require('../services/dynamodb')
 const { getFollowerCount, getFollowingIds, isFollowing, getFollowers } = require('../services/follows')
-const { getReactionCounts, getUserReaction } = require('../services/reactions')
+const { getUserReactions } = require('../services/reactions')
 const { getImageUrl } = require('../services/s3')
 
 const router = express.Router()
@@ -27,26 +27,30 @@ router.get('/:userId', async (req, res, next) => {
       isFollowing(viewerId, userId),
     ])
 
+    const validItems = items.filter(item => item.s3Key)
+    const userReactions = await getUserReactions(
+      validItems.map(item => item.imageId),
+      viewerId
+    )
+
     const images = await Promise.all(
-      items
-        .filter(item => item.s3Key)
-        .map(async item => {
-          const [imageUrl, counts, userReaction] = await Promise.all([
-            getImageUrl(item.s3Key),
-            getReactionCounts(item.imageId),
-            getUserReaction(item.imageId, viewerId),
-          ])
-          return {
-            imageId: item.imageId,
-            userId: item.userId || null,
-            filename: item.filename,
-            labels: item.labels || [],
-            processedAt: item.processedAt,
-            downloadCount: item.downloadCount || 0,
-            imageUrl,
-            reactions: { ...counts, userReaction },
-          }
-        })
+      validItems.map(async item => {
+        const imageUrl = await getImageUrl(item.s3Key)
+        return {
+          imageId: item.imageId,
+          userId: item.userId || null,
+          filename: item.filename,
+          labels: item.labels || [],
+          processedAt: item.processedAt,
+          downloadCount: item.downloadCount || 0,
+          imageUrl,
+          reactions: {
+            likes: Math.max(0, item.likeCount || 0),
+            dislikes: Math.max(0, item.dislikeCount || 0),
+            userReaction: userReactions[item.imageId] || null,
+          },
+        }
+      })
     )
     images.sort((a, b) => new Date(b.processedAt) - new Date(a.processedAt))
 
