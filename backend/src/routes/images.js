@@ -3,7 +3,7 @@ const { v4: uuidv4 } = require('uuid')
 const { generateUploadUrl, getImageUrl, deleteObject } = require('../services/s3')
 const { getLabels, scanImages, queryByUser, getImage, deleteImage, incrementDownloads, findByHash } = require('../services/dynamodb')
 const { getFollowingIds } = require('../services/follows')
-const { getReactionCounts, getUserReaction, deleteAllReactions } = require('../services/reactions')
+const { getUserReactions, deleteAllReactions } = require('../services/reactions')
 
 const router = express.Router()
 
@@ -21,26 +21,30 @@ router.get('/', async (req, res, next) => {
       items = await scanImages()
     }
 
+    const validItems = items.filter(item => item.s3Key)
+    const userReactions = await getUserReactions(
+      validItems.map(item => item.imageId),
+      req.user.userId
+    )
+
     const images = await Promise.all(
-      items
-        .filter(item => item.s3Key)
-        .map(async item => {
-          const [imageUrl, counts, userReaction] = await Promise.all([
-            getImageUrl(item.s3Key),
-            getReactionCounts(item.imageId),
-            getUserReaction(item.imageId, req.user.userId),
-          ])
-          return {
-            imageId: item.imageId,
-            userId: item.userId || null,
-            filename: item.filename,
-            labels: item.labels || [],
-            processedAt: item.processedAt,
-            downloadCount: item.downloadCount || 0,
-            imageUrl,
-            reactions: { ...counts, userReaction },
-          }
-        })
+      validItems.map(async item => {
+        const imageUrl = await getImageUrl(item.s3Key)
+        return {
+          imageId: item.imageId,
+          userId: item.userId || null,
+          filename: item.filename,
+          labels: item.labels || [],
+          processedAt: item.processedAt,
+          downloadCount: item.downloadCount || 0,
+          imageUrl,
+          reactions: {
+            likes: Math.max(0, item.likeCount || 0),
+            dislikes: Math.max(0, item.dislikeCount || 0),
+            userReaction: userReactions[item.imageId] || null,
+          },
+        }
+      })
     )
     images.sort((a, b) => new Date(b.processedAt) - new Date(a.processedAt))
     res.json(images)

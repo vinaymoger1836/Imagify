@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Header from '../components/Header.jsx'
 import FeedTabs from '../components/FeedTabs.jsx'
 import SortControl from '../components/SortControl.jsx'
@@ -14,6 +14,7 @@ import { getSort, setSort as saveSort, sortImages } from '../utils/sort.js'
 
 const POLL_INTERVAL_MS = 2000
 const POLL_MAX_ATTEMPTS = 20
+const PAGE_SIZE = 24
 
 export default function Home() {
   const [images, setImages] = useState([])
@@ -107,6 +108,30 @@ export default function Home() {
 
   const sorted = useMemo(() => sortImages(filtered, sort), [filtered, sort])
 
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const sentinelRef = useRef(null)
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [feed, activeLabel, searchQuery, sort])
+
+  const visible = useMemo(() => sorted.slice(0, visibleCount), [sorted, visibleCount])
+  const hasMore = visible.length < sorted.length
+
+  useEffect(() => {
+    if (!hasMore) return
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) setVisibleCount(c => c + PAGE_SIZE)
+      },
+      { rootMargin: '600px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore])
+
   function handleSortChange(key) {
     setSort(key)
     saveSort(key)
@@ -129,10 +154,13 @@ export default function Home() {
         onSelect={setActiveLabel}
       />
       <ImageGrid
-        images={sorted}
+        images={visible}
         loading={loading}
         onOpen={setSelectedImage}
       />
+      {!loading && hasMore && (
+        <div ref={sentinelRef} className="scroll-sentinel" aria-hidden="true" />
+      )}
       {showUpload && (
         <UploadModal
           onClose={() => setShowUpload(false)}
